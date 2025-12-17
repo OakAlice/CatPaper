@@ -7,7 +7,6 @@ setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
 
 cat_list <- list.files("Data/RawData", pattern = ".csv", full.names = TRUE)
 
-
 # define sections to extract
 # (relatively random trial and error but writing it this way so its reproducible)
 clips <- list(Coco_1 = list(rest = c(400000, 500000),
@@ -54,9 +53,5 @@ lapply(cat_list, function(x){
 
     fwrite(dat, file.path("Data/LabelledData/clipped_data", paste0(cat, "_clipped_", i, ".csv")))
   }
-  
-  
-  
-  
 })
 

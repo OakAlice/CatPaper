@@ -1,5 +1,6 @@
 # Ignore these directories at any level
 Data/
+ModelBuilding/
 
 # Ignore R history files
 *.Rhistory
@@ -10,8 +11,5 @@ Data/
 *.pdf
 *.png
 *.docx
-*.pptx
-*.svg
-*.names
-*.joblib
-*.pyc
+*.csv
+*.xlsx
