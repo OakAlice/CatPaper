@@ -6,6 +6,10 @@ setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
 
 # TODO list ---------------------------------------------------------------
 # normalise features in model training and before classification of the unlabelled
+# change the way the predictions are combined and smoothed for ecological reasonableness
+# pretty plots
+# automate the reasonableness plot
+# deal with the "other" prediction when the VDBA is doing the roll
 
 
 # Set up ------------------------------------------------------------------
@@ -56,11 +60,8 @@ source("Scripts/BuildingModel/BehaviouralClassification.R")
 
 ## Calculating the VDBA from all the free-roaming data --------------------
 # takes in the unlabelled data (masssssive files)
-# calculates VDBA per 1 second 
-# saves to the 
-source("Scripts/GeneratingPredictions/GeneratingVDBAUnlabelled.R")
-
-
+# calculates VDBA and features per 1 second 
+# saves to the Output/Predictions folder (incrememtal and total)
 source("Scripts/GeneratingPredictions/GeneratingFeaturesUnlabelled.R")
 
 # Quantifying effect of bib -----------------------------------------------

@@ -5,7 +5,7 @@ unlabelled_features <- list.files("Output/Predictions", full.names = TRUE, patte
 # for each of the unlabelled files, generate features and then make predictions
 lapply(unlabelled_features, function(x){
   fname <- tools::file_path_sans_ext(basename(x))
-  name <- gsub("[0-9_]", "", fname)
+  name <- str_split(fname, "_")[[1]][1]
   
   dat <- fread(x)
   
@@ -48,6 +48,18 @@ lapply(unlabelled_features, function(x){
     tags[[target]] <- predict(SVM_model, newdata = num_unlabelled)
   }
   
+  # combine these predictions to make a final "predictions" column
+  # this is very basic code at the moment
+  # TODO: Fix this to make it variable target names
+  tags <- tags %>%
+    mutate(
+      prediction = case_when(
+        Fast_Locomotion == "Fast_Locomotion" ~ "Fast_Locomotion",
+        Locomotion      == "Locomotion"      ~ "Locomotion",
+        TRUE                                ~ activity_level
+      )
+    )
+
   # save for this individual
   fwrite(tags, file.path("Output/Predictions", paste0(name, "_unlabelled_predictions.csv")))
 })
