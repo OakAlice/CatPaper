@@ -4,6 +4,10 @@
 setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
 
 
+# TODO list ---------------------------------------------------------------
+# normalise features in model training and before classification of the unlabelled
+
+
 # Set up ------------------------------------------------------------------
 pacman::p_load(tidyverse,
                data.table,
@@ -57,7 +61,7 @@ source("Scripts/BuildingModel/BehaviouralClassification.R")
 source("Scripts/GeneratingPredictions/GeneratingVDBAUnlabelled.R")
 
 
-
+source("Scripts/GeneratingPredictions/GeneratingFeaturesUnlabelled.R")
 
 # Quantifying effect of bib -----------------------------------------------
 

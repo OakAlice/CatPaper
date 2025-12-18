@@ -277,6 +277,10 @@ generate_vdba <- function(accel, window, freq){
   return(accel)
 }
 
-
+# Mode
+get_mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
 
 
