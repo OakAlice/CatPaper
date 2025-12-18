@@ -4,8 +4,7 @@
 # to detect the target behaviours (in the case of the cat studdy, running and walking)
 # model intended to generalise between individuals
 
-all_data <- fread("ModelBuilding/all_labelled_feat_vdba.csv")
-target_activities <- c("Locomotion", "Fast_Locomotion")
+all_data <- fread("Output/ModelBuilding/all_labelled_feat_vdba.csv")
 
 # Code --------------------------------------------------------------------
 # define the bounds for hyperpatameter tuning
@@ -77,7 +76,7 @@ for (target in target_activities) {
         best_cost      = bo_results$Best_Par[["cost"]],
         best_performance = bo_results$Best_Value
       )
-      fwrite(tuning, file.path("ModelBuilding", paste0(target, "_HP_Optimisation.csv")))
+      fwrite(tuning, file.path("Output/ModelBuilding", paste0(target, "_HP_Optimisation.csv")))
     }
     
     # use tuned params

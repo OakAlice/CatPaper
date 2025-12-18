@@ -1,6 +1,6 @@
 # Generating VDBA from the labelled data ----------------------------------
 
-data <- fread("ModelBuilding/cleaned_labelled_data.csv")
+data <- fread("Output/ModelBuilding/cleaned_labelled_data.csv")
 
 # firstly, find all the continuous stretches of data
 data <- detect_breaks(data)
@@ -44,4 +44,4 @@ seconds <- vdba_data %>%
   select(-second)
 
 # save this
-fwrite(seconds, "ModelBuilding/all_labelled_vdba.csv")
+fwrite(seconds, "Output/ModelBuilding/all_labelled_vdba.csv")

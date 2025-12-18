@@ -19,6 +19,7 @@ source("Scripts/FeaturesFunctions.R")
 source("Scripts/BuildingModel/BinarySVMFunctions.R")
 
 window_length <- 1 # in seconds
+target_activities <- c("Locomotion", "Fast_Locomotion") # specific things to find
 
 # Generating data ----------------------------------------------------------
 
@@ -34,21 +35,28 @@ source("Scripts/BuildingModel/PreparingLabelledData.R")
 # saves the feature data as all_labelled_features.csv
 source("Scripts/BuildingModel/GeneratingFeaturesLabelled.R")
 
+# Generating behavioural classifications -----------------------------------
+
 ## Generating VDBA ---------------------------------------------------------
 # takes in the cleaned_labelled_data.csv
 # Across each continuous sampling period, calculate rolling VDBA 
 # saves the resultant 1/sec means and maxes to labelled_VDBA.csv
 source("Scripts/BuildingModel/GeneratingVDBALabelled.R")
 
-# Generating model ---------------------------------------------------------
-
-## Training Model ----------------------------------------------------------
+## Generating Model -------------------------------------------------------
 # validate the optimal model design, test, and train
 # takes in the all_labelled_features.csv and returns a trained model + performance stats
 source("Scripts/BuildingModel/BehaviouralClassification.R")
 
-
 # Making predictions on the free-roaming data -----------------------------
+
+## Calculating the VDBA from all the free-roaming data --------------------
+# takes in the unlabelled data (masssssive files)
+# calculates VDBA per 1 second 
+# saves to the 
+source("Scripts/GeneratingPredictions/GeneratingVDBAUnlabelled.R")
+
+
 
 
 # Quantifying effect of bib -----------------------------------------------

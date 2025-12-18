@@ -1,6 +1,6 @@
 # Generating Features for labelled data -----------------------------------
 
-data <- fread("ModelBuilding/cleaned_labelled_data.csv")
+data <- fread("Output/ModelBuilding/cleaned_labelled_data.csv")
 
 # firstly, find all the continuous stretches of data
 data <- detect_breaks(data)
@@ -31,14 +31,14 @@ lapply(IDs, function(x){
   
   # write to disk for using later (safer than storing in memory)
   ID <- x$ID[1]
-  fwrite(feature_data, file.path("ModelBuilding/TemporaryData", paste0(ID, "_features.csv")))
+  fwrite(feature_data, file.path("Output/ModelBuilding/TemporaryData", paste0(ID, "_features.csv")))
 })
 
 # Write them back together ------------------------------------------------
-features_files <- list.files("ModelBuilding/TemporaryData", full.names = TRUE, pattern = "_features.csv")
+features_files <- list.files("Output/ModelBuilding/TemporaryData", full.names = TRUE, pattern = "_features.csv")
 feature_data <- lapply(features_files, function(x){
   fread(x)
 })
 feature_data <- rbindlist(feature_data, use.names=TRUE)
 # save this
-fwrite(feature_data, "ModelBuilding/all_labelled_features.csv")
+fwrite(feature_data, "Output/ModelBuilding/all_labelled_features.csv")
