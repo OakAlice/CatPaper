@@ -280,4 +280,3 @@ generate_vdba <- function(accel, window, freq){
 
 
 
-

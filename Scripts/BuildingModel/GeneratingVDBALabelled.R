@@ -23,5 +23,25 @@ vdba_data <- lapply(IDs, function(x){
 vdba_data <- bind_rows(vdba_data)
 # vdba_data2 <- na.omit(vdba_data) # don't na omit because it removes too many rows!
 
+# average to one second 
+get_mode <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+seconds <- vdba_data %>%
+  group_by(break_id) %>%
+  mutate(sample_i = row_number(),
+         second = floor((sample_i - 1) / freq)) %>%
+  group_by(ID, second) %>%
+  summarise(
+    mean_VDBA = mean(vedba, na.rm = TRUE),
+    sd_vedba = sd(vedba, na.rm = TRUE),
+    time = first(time),
+    activity = get_mode(activity),
+    .groups = "drop"
+  ) %>%
+  select(-second)
+
 # save this
-fwrite(vdba_data, "ModelBuilding/all_labelled_vdba.csv")
+fwrite(seconds, "ModelBuilding/all_labelled_vdba.csv")

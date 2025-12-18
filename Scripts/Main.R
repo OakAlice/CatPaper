@@ -8,10 +8,17 @@ setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
 pacman::p_load(tidyverse,
                data.table,
                tsfeatures,
-               future)
+               future,
+               ranger,
+               e1071,
+               caret,
+               rBayesianOptimization)
 
 source("Scripts/FigureFunctions.R")
 source("Scripts/FeaturesFunctions.R")
+source("Scripts/BuildingModel/BinarySVMFunctions.R")
+
+window_length <- 1 # in seconds
 
 # Generating data ----------------------------------------------------------
 
@@ -38,7 +45,7 @@ source("Scripts/BuildingModel/GeneratingVDBALabelled.R")
 ## Training Model ----------------------------------------------------------
 # validate the optimal model design, test, and train
 # takes in the all_labelled_features.csv and returns a trained model + performance stats
-source("Scripts/BuildingModel/ModelBuilding.R")
+source("Scripts/BuildingModel/BehaviouralClassification.R")
 
 
 # Making predictions on the free-roaming data -----------------------------
