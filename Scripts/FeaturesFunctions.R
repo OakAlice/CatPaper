@@ -219,46 +219,64 @@ generateStatisticalFeatures <- function(window_chunk, down_Hz) {
 ## Function for generating VDBA ####
 generate_vdba <- function(accel, window, freq){
   
-  win <- window * freq  # smoothing window in sample lengths
+  win <- window * freq  # smoothing window in samples
   
-  if (nrow(accel)>2*win) {
+  if (nrow(accel) > 2 * win) {
     
-    # calculate the static accelerations
-    ax_static <- frollmean(accel$x, n = win, align = "center", fill = NA)
-    ay_static <- frollmean(accel$y, n = win, align = "center", fill = NA)
-    az_static <- frollmean(accel$z, n = win, align = "center", fill = NA)
+    # static acceleration (rolling mean)
+    ax_static <- frollmean(accel$x, win, align = "center", fill = NA)
+    ay_static <- frollmean(accel$y, win, align = "center", fill = NA)
+    az_static <- frollmean(accel$z, win, align = "center", fill = NA)
     
-    # get the dynamic component 
-    ax_dynamic <- accel$x - ax_static
-    ay_dynamic <- accel$y - ay_static
-    az_dynamic <- accel$z - az_static
+    # dynamic component
+    ax_dyn <- accel$x - ax_static
+    ay_dyn <- accel$y - ay_static
+    az_dyn <- accel$z - az_static
     
-    vedba <- sqrt(ax_dynamic^2 + ay_dynamic^2 + az_dynamic^2)
-    odba <- abs(ax_dynamic) + abs(ay_dynamic) + abs(az_dynamic)
+    vedba <- sqrt(ax_dyn^2 + ay_dyn^2 + az_dyn^2)
+    odba  <- abs(ax_dyn) + abs(ay_dyn) + abs(az_dyn)
     
-  } else { # for the short ones, just take the mean
+    # rolling SD of VEDBA
+    vedba_sd <- frollapply(vedba, win, sd, align = "center", fill = NA)
     
-    burst_means <- accel[, .(
+  } else {
+    
+    # burst-level means
+    burst_stats <- accel[, .(
       mean_X = mean(x, na.rm = TRUE),
       mean_Y = mean(y, na.rm = TRUE),
       mean_Z = mean(z, na.rm = TRUE)
     ), by = .(ID, break_id)]
     
-    accel <- merge(accel, burst_means, by = c("ID", "break_id"), all.x = TRUE)
+    accel <- merge(accel, burst_stats, by = c("ID", "break_id"), all.x = TRUE)
     
-    accel[, ax_dynamic := x - mean_X]
-    accel[, ay_dynamic := y - mean_Y]
-    accel[, az_dynamic := z - mean_Z]
+    ax_dyn <- accel$x - accel$mean_X
+    ay_dyn <- accel$y - accel$mean_Y
+    az_dyn <- accel$z - accel$mean_Z
     
-    vedba <- sqrt(accel$ax_dynamic^2 + accel$ay_dynamic^2 + accel$az_dynamic^2)
-    odba <- abs(accel$ax_dynamic) + abs(accel$ay_dynamic) + abs(accel$az_dynamic)
+    vedba <- sqrt(ax_dyn^2 + ay_dyn^2 + az_dyn^2)
+    odba  <- abs(ax_dyn) + abs(ay_dyn) + abs(az_dyn)
+    
+    # burst-level SD of VEDBA
+    burst_sd <- accel[, .(vedba_sd = sd(vedba, na.rm = TRUE)),
+                      by = .(ID, break_id)]
+    
+    accel <- merge(accel, burst_sd, by = c("ID", "break_id"), all.x = TRUE)
+    vedba_sd <- accel$vedba_sd
+    
+    # remove the extra columns
+    accel <- accel[, !c("mean_X", "mean_Y", "mean_Z")]
   }
   
-  accel$vedba <- vedba
-  accel$odba <- odba
+  accel[, `:=`(
+    vedba    = vedba,
+    odba     = odba,
+    vedba_sd = vedba_sd
+  )]
   
   return(accel)
 }
+
 
 
 

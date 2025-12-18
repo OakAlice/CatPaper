@@ -9,16 +9,36 @@
 # fine-tune hyperparameters on the first fold
 # then set hyperparameters as constant and iteratively train/test remainder for robust performance score
 
-data <- fread("ModelBuilding/all_labelled_features.csv")
+feature_data <- fread("ModelBuilding/all_labelled_features.csv")
+vdba_data <- fread("ModelBuilding/all_labelled_vdba.csv")
 
 # Part One: Activity Levels -----------------------------------------------
-vdba_data <- fread("ModelBuilding/all_labelled_vdba.csv")
 # threshold into the different activity levels
 
-ggplot(vdba_data, aes(x = vedba)) + geom_freqpoly()
+# define thresholds for this research question -- specific to the cat project btw
+# inactive is defined as when the sd is the lowest
+
+ggplot(vdba_data, aes(x = vedba_sd)) + geom_freqpoly()
+
+vdba_data$activity_status <- ifelse(vdba_data$vedba_sd < 0.01, "inactive", "active")
+
+vdba_data <- vdba_data %>%
+  mutate(
+    activity_level = case_when(
+      activity_status == "inactive"                         ~ "inactive",
+      vedba > 0.4 * max(vdba_data$vedba, na.rm = TRUE)     ~ "high",
+      vedba > 0.1 *  max(vdba_data$vedba, na.rm = TRUE)     ~ "medium",
+      vedba > 0.05 * max(vdba_data$vedba, na.rm = TRUE)     ~ "low",
+      TRUE                                                  ~ "low"
+    )
+  )
+
+# dat <- vdba_data[1:100000,]
+# ggplot(dat, aes(x = seq_len(nrow(dat)), y = vedba, colour = activity_level, group = 1)) +
+#   geom_line(linewidth = 0.3)
+
+# Locomotion detection ----------------------------------------------------
+# from the active data, can we detect locomotion specifically??
 
 
 
-
-
-# build a binary one-vs all locomotion recogniser 

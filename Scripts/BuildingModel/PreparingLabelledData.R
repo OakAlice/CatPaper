@@ -32,12 +32,12 @@ labelled_data <- rbind(vid_labelled_data, vis_labelled_data)
 labelled_data <- labelled_data %>% select(!behnum)
 
 # Visualise the labelled data ---------------------------------------------
-# plot_dat <- labelled_data %>% 
+# plot_dat <- labelled_data %>%
 #   na.omit() %>%
 #   group_by(ID, activity) %>%
 #   slice(1:300) %>%
 #   mutate(row = row_number())
-# ggplot(plot_dat, aes(x = row, group = 1)) + 
+# ggplot(plot_dat, aes(x = row, group = 1)) +
 #   geom_path(aes(y = x, colour = "coral")) +
 #   geom_path(aes(y = y, colour = "lightblue")) +
 #   geom_path(aes(y = z, colour = "lightgreen")) +
@@ -74,3 +74,6 @@ rough_cut <- rough_cut %>%
   mutate(time = as.POSIXct((time - 719529)*86400, origin = "1970-01-01", tz = "UTC"),
          activity = ifelse(activity == "NaN", "Unknown", activity))
 fwrite(rough_cut, "ModelBuilding/cleaned_labelled_data.csv")
+ 
+# rough_cut2 <- rough_cut %>% arrange(ID, time)
+# ggplot(rough_cut2, aes(x = seq(1:nrow(rough_cut2)), y = x)) + geom_path()

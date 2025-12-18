@@ -8,7 +8,6 @@ data <- detect_breaks(data)
 IDs <- split(data, data$ID)
 
 vdba_data <- lapply(IDs, function(x){
-  print(x)
   # split into the continuous data bits and feed each to the function
   sections <- split(x, x$break_id)
   
@@ -22,7 +21,7 @@ vdba_data <- lapply(IDs, function(x){
   
 })
 vdba_data <- bind_rows(vdba_data)
-vdba_data <- na.omit(vdba_data)
+# vdba_data2 <- na.omit(vdba_data) # don't na omit because it removes too many rows!
 
 # save this
 fwrite(vdba_data, "ModelBuilding/all_labelled_vdba.csv")

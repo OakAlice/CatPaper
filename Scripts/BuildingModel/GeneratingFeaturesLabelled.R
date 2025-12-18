@@ -14,7 +14,7 @@ overlap_percent <- 0 # as a %
 IDs <- split(data, data$ID)
 
 lapply(IDs, function(x){
-  print(ID)
+  print(x)
   # split into the continuous data bits and feed each to the function
   sections <- split(x, x$break_id)
   
@@ -33,7 +33,6 @@ lapply(IDs, function(x){
   ID <- x$ID[1]
   fwrite(feature_data, file.path("ModelBuilding/TemporaryData", paste0(ID, "_features.csv")))
 })
-
 
 # Write them back together ------------------------------------------------
 features_files <- list.files("ModelBuilding/TemporaryData", full.names = TRUE, pattern = "_features.csv")
