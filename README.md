@@ -6,6 +6,7 @@ Free-roaming data was collected in 2019 by Nicole Galea. Labelled data was colle
 
 ## Workflow
 ### Folder Structure
+```
 CatPaper/
 ├── Scripts/
 │ └── Matlab/ (for labelling the data)
@@ -25,6 +26,7 @@ CatPaper/
 │ └── UnderstandingEcology/ (results of the bib condition)
 └── Manuscript/
   └── Figures/ (graphs and plots)
+  ```
 
 ### How the Script Works
 1. Generate labelled data using the Matlab GUI to align video and accelerometer data streams.
