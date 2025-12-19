@@ -284,3 +284,142 @@ get_mode <- function(x) {
 }
 
 
+# only do this code if the feature was requested by name ####
+compute_if <- function(name, value) {
+  if (name %in% specific_features) value else NULL
+}
+
+# Function to generate only the specific features that are used in the identification model ####
+generateSpecificFeatures <- function(data, specific_features, needed_groups, window_length, sample_rate, overlap_percent) {
+  
+  # Calculate window length and overlap
+  samples_per_window <- window_length * sample_rate
+  overlap_samples <- if (overlap_percent > 0) ((overlap_percent / 100) * samples_per_window) else 0
+  num_windows <- ceiling((nrow(data) - overlap_samples) / (samples_per_window - overlap_samples))
+  
+  # Function to process each window for this specific ID
+  process_window <- function(i) {
+    print(i)
+    start_index <- max(1, round((i - 1) * (samples_per_window - overlap_samples) + 1))
+    end_index <- min(start_index + samples_per_window - 1, nrow(data))
+    window_chunk <- data[start_index:end_index, ]
+    
+    # Initialize output features
+    window_info <- tibble(time = NA, ID = NA, activity = NA)
+    statistical_features <- tibble() 
+    single_row_features <- tibble()  
+    
+    # Part 1: Extract required statistical features
+    statistical_result <- data.table()
+      
+    window_chunk <- setDT(window_chunk)
+      
+    for (axis in c("x", "y", "z")) {
+      v <- window_chunk[[axis]]
+        
+      statistical_result[, compute_if(paste0("mean_", axis), mean(v, na.rm = TRUE)) ]
+      statistical_result[, compute_if(paste0("sd_",   axis), sd(v,   na.rm = TRUE)) ]
+      statistical_result[, compute_if(paste0("min_",  axis), min(v,  na.rm = TRUE)) ]
+      statistical_result[, compute_if(paste0("max_",  axis), max(v,  na.rm = TRUE)) ]
+        
+      if (paste0("sk_", axis) %in% specific_features){
+         statistical_result[, paste0("sk_", axis) := e1071::skewness(v, na.rm = TRUE)]
+      }
+        
+      fft_needed <- paste0(c("mean_mag_", "max_mag_", "total_power_", "peak_freq_"), axis)
+        if (any(fft_needed %in% specific_features)) {
+          fft <- extractFftFeatures(v, sample_rate)
+          statistical_result[, compute_if(paste0("mean_mag_", axis),  fft$Mean_Magnitude)]
+          statistical_result[, compute_if(paste0("max_mag_",  axis),  fft$Max_Magnitude)]
+          statistical_result[, compute_if(paste0("total_power_", axis), fft$Total_Power)]
+          statistical_result[, compute_if(paste0("peak_freq_", axis),  fft$Peak_Frequency)]
+        }
+      }
+      
+      # calculate SMA, ODBA, and VDBA
+      if (any(c("SMA", "minODBA", "maxODBA") %in% specific_features)) {
+        ODBA <- rowSums(abs(window_chunk[, .(x, y, z)]))
+        
+        statistical_result[, compute_if("SMA", mean(ODBA))]
+        statistical_result[, compute_if("minODBA", min(ODBA))]
+        statistical_result[, compute_if("maxODBA", max(ODBA))]
+      }
+      
+      if (any(c("minVDBA", "maxVDBA") %in% specific_features)) {
+        VDBA <- sqrt(rowSums(window_chunk[, .(x, y, z)]^2))
+        statistical_result[, compute_if("minVDBA", min(VDBA))]
+        statistical_result[, compute_if("maxVDBA", max(VDBA))]
+      }
+      
+      # Part 2: Extract required timeseries features
+      time_series_features <- list()
+      
+      # Loop through each feature and calculate it
+      for (feature in needed_groups) {
+        tryCatch({
+          feature_values <- tsfeatures(
+            tslist = ts_list,
+            features = feature,
+            scale = FALSE,
+            multiprocess = TRUE
+          )
+          time_series_features[[feature]] <- feature_values
+        }, error = function(e) {
+          message("Skipping feature ", feature, " due to error: ", e$message)
+        })
+      }
+      
+      # Combine all features into a single tibble
+      if (length(time_series_features) > 0) {
+        time_series_features <- bind_cols(time_series_features)
+      } else {
+        time_series_features <- tibble()
+      }
+      
+      if (nrow(time_series_features) > 0) {
+        single_row_features <- time_series_features %>%
+          mutate(axis = rep(c("x", "y", "z"), length.out = n())) %>%
+          pivot_longer(cols = -axis, names_to = "feature", values_to = "value") %>%
+          unite("feature_name", axis, feature, sep = "_") %>%
+          pivot_wider(names_from = feature_name, values_from = value)
+      } else {
+        message("No rows in time_series_features. Returning empty tibble.")
+        single_row_features <- tibble(matrix(NA, nrow = 1, ncol = length(unique(paste0(rep(c("x", "y", "z"), each = length(time_series_features)), "_", names(time_series_features))))))  # Fill with NAs
+        colnames(single_row_features) <- unique(paste0(rep(c("x", "y", "z"), each = length(time_series_features)), "_", names(time_series_features)))  # Match the column names
+      }
+    
+    if (nrow(window_chunk) > 0) {
+      window_info <- window_chunk %>% 
+        summarise(
+          time = first(time),
+          ID = first(ID),
+          activity = if ("activity" %in% names(.)) {
+            as.character(names(sort(table(activity), decreasing = TRUE))[1])
+          } else {
+            NA
+          }
+        ) %>% 
+        ungroup()
+    }
+    
+    # Ensure that blank inputs are handled by replacing them with placeholders
+    window_info <- if (is.null(window_info) || nrow(window_info) == 0) data.frame(matrix(NA, nrow = 1, ncol = 0)) else window_info
+    single_row_features <- if (is.null(single_row_features) || nrow(single_row_features) == 0) data.frame(matrix(NA, nrow = 1, ncol = 0)) else single_row_features
+    statistical_features <- if (is.null(statistical_result) || nrow(statistical_result) == 0) data.frame(matrix(NA, nrow = 1, ncol = 0)) else statistical_result
+    
+    # Combine the data frames
+    combined_features <- cbind(window_info, single_row_features, statistical_features) %>%
+      mutate(across(everything(), ~replace_na(., NA)))  # Ensure all columns are present
+    
+    return(combined_features)
+  }
+  
+  # Use lapply to process each window for the current ID
+  plan(multisession) # parallel processing
+  window_features_list <- lapply(1:num_windows, process_window)
+  plan(sequential)
+  
+  # Combine all the windows for this ID into a single data frame
+  features <- bind_rows(window_features_list)
+  return(features)
+}

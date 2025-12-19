@@ -10,6 +10,7 @@ setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
 # pretty plots
 # automate the reasonableness plot
 # deal with the "other" prediction when the VDBA is doing the roll
+# change the normal features code to be the "only if" code... ngl its kinda better
 
 
 # Set up ------------------------------------------------------------------
@@ -20,7 +21,8 @@ pacman::p_load(tidyverse,
                ranger,
                e1071,
                caret,
-               rBayesianOptimization)
+               rBayesianOptimization,
+               patchwork)
 
 source("Scripts/FigureFunctions.R")
 source("Scripts/FeaturesFunctions.R")
