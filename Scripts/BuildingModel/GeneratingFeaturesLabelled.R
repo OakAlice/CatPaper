@@ -40,5 +40,14 @@ feature_data <- lapply(features_files, function(x){
   fread(x)
 })
 feature_data <- rbindlist(feature_data, use.names=TRUE)
+
+# normalise the data
+features_to_normalise <- colnames(feature_data)[!colnames(feature_data) %in% c("ID", "time", "activity")]
+feature_data[, (features_to_normalise) := lapply(.SD, function(x) {
+  s <- sd(x, na.rm = TRUE)
+  if (s == 0 || is.na(s)) return(rep(0, .N))
+  (x - mean(x, na.rm = TRUE)) / s
+}), .SDcols = features_to_normalise]
+
 # save this
 fwrite(feature_data, "Output/ModelBuilding/all_labelled_features.csv")

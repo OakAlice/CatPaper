@@ -27,7 +27,7 @@ vdba_data <- bind_rows(vdba_data)
 seconds <- vdba_data %>%
   group_by(break_id) %>%
   mutate(sample_i = row_number(),
-         second = floor((sample_i - 1) / freq)) %>%
+         second = floor((sample_i - 1) / 50)) %>% # 50 is the freq
   group_by(ID, second) %>%
   summarise(
     mean_VDBA = mean(vedba, na.rm = TRUE),

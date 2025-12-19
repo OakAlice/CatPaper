@@ -285,7 +285,7 @@ get_mode <- function(x) {
 
 
 # only do this code if the feature was requested by name ####
-compute_if <- function(name, value) {
+compute_if <- function(name, value, specific_features) {
   if (name %in% specific_features) value else NULL
 }
 
@@ -305,54 +305,74 @@ generateSpecificFeatures <- function(data, specific_features, needed_groups, win
     window_chunk <- data[start_index:end_index, ]
     
     # Initialize output features
-    window_info <- tibble(time = NA, ID = NA, activity = NA)
-    statistical_features <- tibble() 
-    single_row_features <- tibble()  
+    window_info <- data.table(time = NA, ID = NA, activity = NA)
+    statistical_result <- data.table() 
+    single_row_features <- data.table()  
     
-    # Part 1: Extract required statistical features
-    statistical_result <- data.table()
-      
     window_chunk <- setDT(window_chunk)
       
     for (axis in c("x", "y", "z")) {
       v <- window_chunk[[axis]]
+ 
+      if (paste0("mean_", axis) %in% specific_features) {
+        statistical_result[, (paste0("mean_", axis)) := mean(v, na.rm = TRUE)]}
         
-      statistical_result[, compute_if(paste0("mean_", axis), mean(v, na.rm = TRUE)) ]
-      statistical_result[, compute_if(paste0("sd_",   axis), sd(v,   na.rm = TRUE)) ]
-      statistical_result[, compute_if(paste0("min_",  axis), min(v,  na.rm = TRUE)) ]
-      statistical_result[, compute_if(paste0("max_",  axis), max(v,  na.rm = TRUE)) ]
+      if (paste0("sd_", axis) %in% specific_features) {
+          statistical_result[, (paste0("sd_", axis)) := sd(v, na.rm = TRUE)]}
         
-      if (paste0("sk_", axis) %in% specific_features){
-         statistical_result[, paste0("sk_", axis) := e1071::skewness(v, na.rm = TRUE)]
+      if (paste0("min_", axis) %in% specific_features) { 
+        statistical_result[, (paste0("min_", axis)) := min(v, na.rm = TRUE)]}
+        
+      if (paste0("max_", axis) %in% specific_features) { 
+        statistical_result[, (paste0("max_", axis)) := max(v, na.rm = TRUE)]}
+        
+      if (paste0("sk_", axis) %in% specific_features) { 
+        statistical_result[, (paste0("sk_", axis)) := e1071::skewness(v, na.rm = TRUE)]}
+    
+    # define the possible fft variables
+      fft_needed <- paste0(
+        c("mean_mag_", "max_mag_", "total_power_", "peak_freq_"),
+        axis
+      )
+      if (any(fft_needed %in% specific_features)) {
+        fft <- extractFftFeatures(v, sample_rate)
+          
+        if (paste0("mean_mag_", axis) %in% specific_features)
+          statistical_result[, (paste0("mean_mag_", axis)) := fft$Mean_Magnitude]
+          
+        if (paste0("max_mag_", axis) %in% specific_features)
+          statistical_result[, (paste0("max_mag_", axis)) := fft$Max_Magnitude]
+          
+        if (paste0("total_power_", axis) %in% specific_features)
+          statistical_result[, (paste0("total_power_", axis)) := fft$Total_Power]
+          
+        if (paste0("peak_freq_", axis) %in% specific_features)
+          statistical_result[, (paste0("peak_freq_", axis)) := fft$Peak_Frequency]
       }
-        
-      fft_needed <- paste0(c("mean_mag_", "max_mag_", "total_power_", "peak_freq_"), axis)
-        if (any(fft_needed %in% specific_features)) {
-          fft <- extractFftFeatures(v, sample_rate)
-          statistical_result[, compute_if(paste0("mean_mag_", axis),  fft$Mean_Magnitude)]
-          statistical_result[, compute_if(paste0("max_mag_",  axis),  fft$Max_Magnitude)]
-          statistical_result[, compute_if(paste0("total_power_", axis), fft$Total_Power)]
-          statistical_result[, compute_if(paste0("peak_freq_", axis),  fft$Peak_Frequency)]
-        }
-      }
+    }
+  
+      if ("SMA" %in% specific_features) { 
+        statistical_result[, SMA := sum(rowSums(abs(window_chunk[, c("x", "y", "z"), with = FALSE]))) / nrow(window_chunk)]}
       
-      # calculate SMA, ODBA, and VDBA
-      if (any(c("SMA", "minODBA", "maxODBA") %in% specific_features)) {
-        ODBA <- rowSums(abs(window_chunk[, .(x, y, z)]))
+      ODBA <- rowSums(abs(window_chunk[, c("x", "y", "z"), with = FALSE]))
+      if ("minODBA" %in% specific_features) { 
+        statistical_result[, `:=`(minODBA = min(ODBA, na.rm = TRUE))]}
+      if ("maxODBA" %in% specific_features) { 
+        statistical_result[, `:=`(minODBA = max(ODBA, na.rm = TRUE))]}
         
-        statistical_result[, compute_if("SMA", mean(ODBA))]
-        statistical_result[, compute_if("minODBA", min(ODBA))]
-        statistical_result[, compute_if("maxODBA", max(ODBA))]
-      }
-      
-      if (any(c("minVDBA", "maxVDBA") %in% specific_features)) {
-        VDBA <- sqrt(rowSums(window_chunk[, .(x, y, z)]^2))
-        statistical_result[, compute_if("minVDBA", min(VDBA))]
-        statistical_result[, compute_if("maxVDBA", max(VDBA))]
-      }
-      
+      VDBA <- sqrt(rowSums(window_chunk[, c("x", "y", "z"), with = FALSE]^2))
+      if ("minVDBA" %in% specific_features) { 
+        statistical_result[, `:=`(minVDBA = min(VDBA, na.rm = TRUE))]}
+      if ("maxVDBA" %in% specific_features) { 
+        statistical_result[, `:=`(minVDBA = max(VDBA, na.rm = TRUE))]}
+        
       # Part 2: Extract required timeseries features
       time_series_features <- list()
+      ts_list <- list(
+        X = window_chunk[["x"]],
+        Y = window_chunk[["y"]],
+        Z = window_chunk[["z"]]
+      )
       
       # Loop through each feature and calculate it
       for (feature in needed_groups) {
@@ -405,10 +425,10 @@ generateSpecificFeatures <- function(data, specific_features, needed_groups, win
     # Ensure that blank inputs are handled by replacing them with placeholders
     window_info <- if (is.null(window_info) || nrow(window_info) == 0) data.frame(matrix(NA, nrow = 1, ncol = 0)) else window_info
     single_row_features <- if (is.null(single_row_features) || nrow(single_row_features) == 0) data.frame(matrix(NA, nrow = 1, ncol = 0)) else single_row_features
-    statistical_features <- if (is.null(statistical_result) || nrow(statistical_result) == 0) data.frame(matrix(NA, nrow = 1, ncol = 0)) else statistical_result
+    statistical_result <- if (is.null(statistical_result) || nrow(statistical_result) == 0) data.frame(matrix(NA, nrow = 1, ncol = 0)) else statistical_result
     
     # Combine the data frames
-    combined_features <- cbind(window_info, single_row_features, statistical_features) %>%
+    combined_features <- cbind(window_info, single_row_features, statistical_result) %>%
       mutate(across(everything(), ~replace_na(., NA)))  # Ensure all columns are present
     
     return(combined_features)

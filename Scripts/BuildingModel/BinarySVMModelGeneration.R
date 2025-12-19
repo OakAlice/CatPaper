@@ -5,7 +5,7 @@ all_data <- fread("Output/ModelBuilding/all_labelled_feat_vdba.csv")
 for (target in target_activities){
   
   # load in the optimal hyperparameters
-  parameters <- fread(file.path("ModelBuilding", paste0(target, "_HP_Optimisation.csv")))
+  parameters <- fread(file.path("Output/ModelBuilding", paste0(target, "_HP_Optimisation.csv")))
   
   # set all the data to binary
   other2 <- all_data %>%

@@ -49,8 +49,6 @@ needed_groups <- names(features_mapping)[
   sapply(features_mapping, function(feature_list) any(feature_list %in% needed_features))
 ]
 # therefore, when I go to call "generate features" in the next step, I only have to call those. YAY. Time saved!! Huge!
-
-
 # now generate them for each chunk
 
 # Process each of the files -----------------------------------------------
@@ -115,7 +113,7 @@ lapply(unlabelled_files, function(x){
         vdba_data <- generate_vdba(data_chunk, window = 1, freq = 50)
         seconds <- vdba_data %>%
           mutate(sample_i = row_number(),
-                 second = floor((sample_i - 1) / freq)) %>%
+                 second = floor((sample_i - 1) / 50)) %>% ## 50 is the frequency
           group_by(second) %>%
           summarise(
             mean_VDBA = mean(vedba, na.rm = TRUE),
@@ -126,11 +124,11 @@ lapply(unlabelled_files, function(x){
           select(-second)
         
         # add this back to the feature data
-        setDT(feature_data)
+        setDT(feature_data_specific)
         setDT(seconds)
-        setkey(feature_data, time)
+        setkey(feature_data_specific, time)
         setkey(seconds, time)
-        dat <- seconds[feature_data, roll = "nearest"]
+        dat <- seconds[feature_data_specific, roll = "nearest"]
         
         # write it as a temp file
         fwrite(dat, file.path("Output/Predictions/TemporaryData", paste0(name, "_processed_", start, ".csv")))
@@ -145,14 +143,13 @@ lapply(unlabelled_files, function(x){
     feature_data <- rbindlist(features_list, fill = TRUE)
     
     # normalise to account for the very different sized individuals
-    # features_to_normalise <- colnames(feature_data)[!colnames(feature_data) %in% c("ID", "Timestamp")]
-    # feature_data[, (features_to_normalise) := lapply(.SD, function(x) {
-    #   s <- sd(x, na.rm = TRUE)
-    #   if (s == 0 || is.na(s)) return(rep(0, .N))
-    #   (x - mean(x, na.rm = TRUE)) / s
-    # }), .SDcols = features_to_normalise]
+    features_to_normalise <- colnames(feature_data)[!colnames(feature_data) %in% c("ID", "time", "mean_VDBA", "sd_vedba")]
+    feature_data[, (features_to_normalise) := lapply(.SD, function(x) {
+      s <- sd(x, na.rm = TRUE)
+      if (s == 0 || is.na(s)) return(rep(0, .N))
+      (x - mean(x, na.rm = TRUE)) / s
+    }), .SDcols = features_to_normalise]
     
     fwrite(feature_data, file.path("Output/Predictions", paste0(name, "_unlabelled_features.csv")))
-    # feature_data <- fread(file.path(base_path, "Output", paste0(name, "_Unlabelled_Feature_Data.csv")))
   }
 })

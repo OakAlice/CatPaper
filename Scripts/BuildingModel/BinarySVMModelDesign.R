@@ -93,5 +93,5 @@ for (target in target_activities) {
   }
   
   # save that
-  fwrite(results, file.path("ModelBuilding", paste0(target, "_CrossValidation.csv")))
+  fwrite(results, file.path("Output/ModelBuilding", paste0(target, "_CrossValidation.csv")))
 }

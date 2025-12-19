@@ -7,7 +7,7 @@
 # TODO: Automate this 
 
 
-cat <- "Coco"
+cat <- "Freddie"
 
 # load in the raw accel
 rawdat <- fread(paste0("Data/RawData/", cat, "_1.csv")) # because thats the size of a chunk

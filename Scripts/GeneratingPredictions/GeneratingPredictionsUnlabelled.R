@@ -1,6 +1,6 @@
 # Making the behavioural classifications ----------------------------------
 unlabelled_features <- list.files("Output/Predictions", full.names = TRUE, pattern = "_unlabelled_features.csv")
-# x <- unlabelled_files[1]
+# x <- unlabelled_features[2]
 
 # for each of the unlabelled files, generate features and then make predictions
 lapply(unlabelled_features, function(x){
