@@ -299,7 +299,6 @@ generateSpecificFeatures <- function(data, specific_features, needed_groups, win
   
   # Function to process each window for this specific ID
   process_window <- function(i) {
-    print(i)
     start_index <- max(1, round((i - 1) * (samples_per_window - overlap_samples) + 1))
     end_index <- min(start_index + samples_per_window - 1, nrow(data))
     window_chunk <- data[start_index:end_index, ]
@@ -434,9 +433,20 @@ generateSpecificFeatures <- function(data, specific_features, needed_groups, win
     return(combined_features)
   }
   
-  # Use lapply to process each window for the current ID
-  plan(multisession) # parallel processing
-  window_features_list <- lapply(1:num_windows, process_window)
+  # Use future_lapply to parallel process chunks of windows
+  chunks <- split(
+    seq_len(num_windows),
+    ceiling(seq_len(num_windows) / 500)  # tune this
+  )
+  
+  plan(multisession, workers = availableCores() - 1)
+  
+  window_features_list <- future_lapply(chunks, function(idx) {
+    lapply(idx, process_window)
+  })
+  
+  window_features_list <- unlist(window_features_list, recursive = FALSE)
+  
   plan(sequential)
   
   # Combine all the windows for this ID into a single data frame

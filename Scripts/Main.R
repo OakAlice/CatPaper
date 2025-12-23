@@ -18,6 +18,7 @@ pacman::p_load(tidyverse,
                data.table,
                tsfeatures,
                future,
+               future.apply,
                ranger,
                e1071,
                caret,
@@ -66,8 +67,11 @@ source("Scripts/BuildingModel/BehaviouralClassification.R")
 # saves to the Output/Predictions folder (incrememtal and total)
 source("Scripts/GeneratingPredictions/GeneratingFeaturesUnlabelled.R")
 
-# Quantifying effect of bib -----------------------------------------------
+# then use the following script to double check the prediction output
+# source("Scripts/GeneratingPredictions/CheckingReasonableness.R")
 
+# Quantifying effect of bib -----------------------------------------------
+source("Scripts/UnderstandingEcology/BibAnalysis.R")
 
 # Making figures for the paper --------------------------------------------
 

@@ -53,7 +53,7 @@ needed_groups <- names(features_mapping)[
 
 # Process each of the files -----------------------------------------------
 unlabelled_files <- list.files("Data/RawData", full.names = TRUE, pattern = ".csv")
-# x <- unlabelled_files[2]
+# x <- unlabelled_files[3]
 
 # for each of the unlabelled files, generate features and then make predictions
 lapply(unlabelled_files, function(x){
@@ -94,6 +94,7 @@ lapply(unlabelled_files, function(x){
             sample_rate = 50, 
             overlap_percent = 0
           )
+          print("chunk done")
         # })
         # print(time_specific)
         

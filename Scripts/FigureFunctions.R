@@ -25,3 +25,6 @@ fave_colours <- c(
   "mistyrose3", "lavenderblush2", "seashell2"
 )
 
+bib_colours <- c("On" = "#b477a3",
+                 "Off" = "#8fbc8f",
+                 "transition" = "#e6c078")

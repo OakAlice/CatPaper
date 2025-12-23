@@ -7,7 +7,7 @@
 # TODO: Automate this 
 
 
-cat <- "Freddie"
+cat <- "Max"
 
 # load in the raw accel
 rawdat <- fread(paste0("Data/RawData/", cat, "_1.csv")) # because thats the size of a chunk
@@ -23,9 +23,18 @@ setkey(rawdat, time)
 setkey(preds, time)
 combdat <- preds[rawdat, roll = "nearest"]
 
+prediction_colours <- c("FastLocomotion" = "#b477a3",
+                        "Locomotion" = "#e89fbf",
+                        "Other" = "lemonchiffon2",
+                        "high" = "#d8907c",
+                        "medium" = "#e6c078",
+                        "low" = "#8fbc8f",
+                        "inactive" = "#7ca6d8")
+
 # plot them
-combdat_plot <- combdat[0:80000,]
+combdat_plot <- combdat[10000:20000,]
 ggplot(combdat_plot, aes(x = seq(1:nrow(combdat_plot)), colour = prediction, group = 1)) + 
   geom_path(aes(y = x)) +
   geom_path(aes(y = y)) +
-  geom_path(aes(y = z))
+  geom_path(aes(y = z)) +
+  scale_colour_manual(values = prediction_colours)

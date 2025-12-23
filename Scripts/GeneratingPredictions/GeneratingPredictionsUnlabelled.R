@@ -4,6 +4,11 @@ unlabelled_features <- list.files("Output/Predictions", full.names = TRUE, patte
 
 # for each of the unlabelled files, generate features and then make predictions
 lapply(unlabelled_features, function(x){
+  
+  if (file.exists(file.path("Output/Predictions", paste0(name, "_unlabelled_predictions.csv")))){
+    print("file already exists")
+    next
+  }
   fname <- tools::file_path_sans_ext(basename(x))
   name <- str_split(fname, "_")[[1]][1]
   
@@ -33,7 +38,7 @@ lapply(unlabelled_features, function(x){
   clean_data <- dat %>%
     tidyr::drop_na(!!!syms(all_good_features))
   
-  # initialise tags once for he individual
+  # initialise tags once for the individual
   tags <- clean_data %>%
     select(time, ID, activity_level, activity_status, mean_VDBA, sd_vedba)
   

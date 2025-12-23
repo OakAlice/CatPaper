@@ -1,0 +1,180 @@
+---
+title: "BibAnalysis"
+author: "O.W."
+date: "2025-12-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE)
+
+setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
+
+pacman::p_load(tidyverse,
+               data.table,
+               patchwork,
+               lme4,
+               lmerTest,
+               broom.mixed)
+
+# load in the data and clean it up
+final_data <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/Results/Final_predictions.csv") %>%
+  filter(!bib_status == "") %>%
+  mutate(hour = hour(time),
+         date = as.Date(time))
+# define some factor levels
+final_data$bib_status <- factor(final_data$bib_status, levels = c("Off", "On"))
+final_data$prediction <- factor(final_data$prediction, levels = c("FastLocomotion", "Locomotion", "high", "medium", "low", "inactive", "Other"))
+
+# plotting variables
+bib_colours <- c("On" = "#b477a3",
+                 "Off" = "#8fbc8f")
+prediction_colours <- c("FastLocomotion" = "#b477a3",
+                        "Locomotion" = "#e89fbf",
+                        "Other" = "lemonchiffon2",
+                        "high" = "#d8907c",
+                        "medium" = "#e6c078",
+                        "low" = "#8fbc8f",
+                        "inactive" = "#7ca6d8")
+
+my_theme <- function() {
+  theme_minimal(base_size = 10, base_family = "serif") +
+    theme(
+      panel.border = element_rect(color = "black", linewidth = 1.5, fill = NA),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      plot.background  = element_rect(fill = "transparent", colour = NA),
+      panel.background = element_rect(fill = "transparent", colour = NA),
+      axis.line = element_line(color = "black"),
+      axis.ticks = element_line(color = "black"),
+      axis.title = element_text(size = 20),
+      axis.text = element_text(size = 20) 
+    )
+}
+```
+
+## Energy Over the Day
+How does mean activity change throughout the day depending on the bib status.
+```{r daily_energy, fig.width=12, fig.height=5}
+# wrangle the data
+plot_data <- final_data %>%
+  group_by(ID, date, hour, bib_status) %>%
+  summarise(mean = mean(mean_VDBA))
+
+plot_data2 <- final_data %>%
+  group_by(ID, bib_status, prediction) %>%
+  summarise(mean = mean(mean_VDBA))
+
+# make the plots
+p1 <- ggplot(plot_data, aes(y = mean, x = hour, colour = bib_status)) +
+  geom_point(aes(x = as.factor(hour))) +
+  geom_smooth(method = "loess", se = FALSE, span = 0.3) +
+  xlab("Hour") +
+  ylab("Mean VDBA (g)") +
+  my_theme() + 
+  scale_colour_manual(values = bib_colours)
+
+p2 <- ggplot(plot_data2, aes(x = prediction, y = mean, fill = bib_status)) +
+  geom_boxplot() +
+  xlab("Bib Status") +
+  ylab("Mean VDBA (g)") +
+  my_theme() + 
+  scale_fill_manual(values = bib_colours)
+  
+plot1 <- (p1 + p2) +
+    plot_layout(guides = "collect") &
+    theme(
+      legend.position = "bottom",
+      legend.box = "horizontal",
+      legend.title = element_text(size = 10),
+      legend.text  = element_text(size = 10),
+      legend.key.size = unit(0.4, "lines"),
+      legend.spacing.x = unit(0.3, "cm"),
+      legend.spacing.y = unit(0.2, "cm")
+    )
+  
+plot1
+
+# do the stats
+mod <- lmer(mean ~ bib_status + (1 | ID), data = plot_data2)
+# summary(mod)
+broom.mixed::tidy(mod)
+
+```
+
+## Behavioural Frequency
+Does the frequency of behaviours change throughout the day?
+```{r proportion_behaviours}
+plot_data3 <- final_data %>%
+  group_by(hour, bib_status, prediction) %>%
+  summarise(total_count = n())
+
+plot_data4 <- final_data %>%
+  group_by(bib_status, prediction) %>%
+  summarise(total_count = n()) %>%
+  group_by(bib_status) %>%
+  mutate(prop = total_count / sum(total_count))
+
+
+p3 <- ggplot(plot_data3, aes(x = hour, y = total_count, fill = prediction)) +
+  geom_area(position = "stack", alpha = 0.8) +
+  facet_wrap(~ bib_status, ncol = 1, strip.position = "bottom") +  # move facet titles
+  scale_fill_manual(values = prediction_colours) +
+  xlab("Hour") +
+  ylab("Count of behaviours") +
+  my_theme()
+
+p4 <- ggplot(plot_data4, aes(x = bib_status, y = total_count, fill = prediction)) +
+  geom_bar(stat = "identity", position = "fill", alpha = 0.8) +
+  scale_fill_manual(values = prediction_colours) +
+  xlab("Bib Status") +
+  ylab("Proportion of behaviours") +
+  my_theme()
+
+
+plot2 <- (p3 + p4) +
+    plot_layout(guides = "collect") &
+    theme(
+      legend.position = "bottom",
+      legend.box = "horizontal",
+      legend.title = element_text(size = 10),
+      legend.text  = element_text(size = 10),
+      legend.key.size = unit(0.4, "lines"),
+      legend.spacing.x = unit(0.3, "cm"),
+      legend.spacing.y = unit(0.2, "cm")
+    )
+  
+plot2
+
+# stats
+
+# compute counts and proportions directly from final_data
+plot_data_prop <- final_data %>%
+  group_by(ID, date, bib_status, prediction) %>%
+  summarise(total_count = n(), .groups = "drop") %>%
+  group_by(ID, date, bib_status) %>%
+  mutate(prop = total_count / sum(total_count)) %>% 
+  ungroup()
+
+# get unique behaviours
+# behaviours <- unique(plot_data_prop$prediction)
+# 
+# # fit LMM per behaviour and store results
+# results <- lapply(behaviours, function(b) {
+#   df <- filter(plot_data_prop, prediction == b)
+#   mod <- lmer(prop ~ bib_status + (1 | ID), data = df)
+#   summary(mod)$coefficients %>% 
+#     as.data.frame() %>%
+#     mutate(prediction = b)   # keep behaviour name in output
+# })
+# 
+# # combine all results
+# results_df <- bind_rows(results)
+# results_df <- results_df %>%
+#   mutate(significant = ifelse(`Pr(>|t|)` < 0.05, TRUE, FALSE))
+# results_df
+
+```
+
