@@ -7,10 +7,10 @@
 # TODO: Automate this 
 
 
-cat <- "Max"
+cat <- "Timmy"
 
 # load in the raw accel
-rawdat <- fread(paste0("Data/RawData/", cat, "_1.csv")) # because thats the size of a chunk
+rawdat <- fread(paste0("Data/RawData/", cat, "_1.csv"))
 colnames(rawdat) <- c("time", "x", "y", "z")
 
 # load in the predictions
@@ -25,10 +25,9 @@ combdat <- preds[rawdat, roll = "nearest"]
 
 prediction_colours <- c("FastLocomotion" = "#b477a3",
                         "Locomotion" = "#e89fbf",
-                        "Other" = "lemonchiffon2",
                         "high" = "#d8907c",
                         "medium" = "#e6c078",
-                        "low" = "#8fbc8f",
+                        "low" = "lightgreen",
                         "inactive" = "#7ca6d8")
 
 # plot them
@@ -37,4 +36,5 @@ ggplot(combdat_plot, aes(x = seq(1:nrow(combdat_plot)), colour = prediction, gro
   geom_path(aes(y = x)) +
   geom_path(aes(y = y)) +
   geom_path(aes(y = z)) +
-  scale_colour_manual(values = prediction_colours)
+  scale_colour_manual(values = prediction_colours) +
+  my_theme()

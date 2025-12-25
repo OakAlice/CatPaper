@@ -24,11 +24,10 @@ lapply(unlabelled_features, function(x){
         activity_status == "inactive"                           ~ "inactive",
         mean_VDBA > 0.4 * max(dat$mean_VDBA, na.rm = TRUE)      ~ "high",
         mean_VDBA > 0.1 *  max(dat$mean_VDBA, na.rm = TRUE)     ~ "medium",
-        mean_VDBA > 0.05 * max(dat$mean_VDBA, na.rm = TRUE)     ~ "low",
-        TRUE                                                    ~ "Other"
+        TRUE     ~ "low"
       )
     )
-    
+  
   # apply the models we prepared earlier!
   # collect all features ever used
   # have to do this so we can clean the data in the same way for both of the target activites

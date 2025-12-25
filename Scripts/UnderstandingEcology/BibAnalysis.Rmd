@@ -23,20 +23,20 @@ pacman::p_load(tidyverse,
 final_data <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/Results/Final_predictions.csv") %>%
   filter(!bib_status == "") %>%
   mutate(hour = hour(time),
-         date = as.Date(time))
+         date = as.Date(time),
+         prediction = ifelse(prediction == "FastLocomotion", "Locomotion", prediction)) %>%
+  na.omit()
 # define some factor levels
 final_data$bib_status <- factor(final_data$bib_status, levels = c("Off", "On"))
-final_data$prediction <- factor(final_data$prediction, levels = c("FastLocomotion", "Locomotion", "high", "medium", "low", "inactive", "Other"))
+final_data$prediction <- factor(final_data$prediction, levels = c("Locomotion", "high", "medium", "low", "inactive"))
 
 # plotting variables
 bib_colours <- c("On" = "#b477a3",
                  "Off" = "#8fbc8f")
-prediction_colours <- c("FastLocomotion" = "#b477a3",
-                        "Locomotion" = "#e89fbf",
-                        "Other" = "lemonchiffon2",
+prediction_colours <- c("Locomotion" = "#e89fbf",
                         "high" = "#d8907c",
                         "medium" = "#e6c078",
-                        "low" = "#8fbc8f",
+                        "low" = "lightgreen",
                         "inactive" = "#7ca6d8")
 
 my_theme <- function() {
@@ -55,6 +55,62 @@ my_theme <- function() {
 }
 ```
 
+## Model Performance
+Before making predictions with the model, we should assess the performance from the cross-validation.
+```{r}
+Locomotion_CV <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/ModelBuilding/Locomotion_CrossValidation.csv")
+Fast_Locomotion_CV <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/ModelBuilding/Fast_Locomotion_CrossValidation.csv")
+
+Locomotion_performance <- Locomotion_CV %>% select(-fold, -Accuracy) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
+  mutate(Behaviour = "Locomotion")
+Fast_Locomotion_performance <- Fast_Locomotion_CV %>% select(-fold, -Accuracy) %>%
+  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
+  mutate(Behaviour = "Fast_Locomotion")
+
+performance <- rbind(Locomotion_performance, Fast_Locomotion_performance)
+performance
+```
+
+## Prediction Examples
+Making some plots to show what the predictions were like
+```{r fig.width=10, fig.height=4}
+cat <- "Juliet"
+
+# load in the raw accel and predictions
+rawdat <- fread(paste0("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Data/RawData/", cat, "_1.csv"))
+colnames(rawdat) <- c("time", "x", "y", "z")
+preds <- fread(file.path("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/Predictions", paste0(cat, "_unlabelled_predictions.csv")))
+
+# combine
+setDT(rawdat)
+setDT(preds)
+setkey(rawdat, time)
+setkey(preds, time)
+combdat <- preds[rawdat, roll = "nearest"]
+
+combdat_plot <- combdat[10000:25000,]
+# plot them
+ggplot(
+  combdat_plot,
+  aes(
+    x = (seq_len(nrow(combdat_plot)) - 1) / 50, # 50 for hz
+    colour = prediction,
+    group = 1
+  )
+) +
+  geom_path(aes(y = x)) +
+  geom_path(aes(y = y)) +
+  geom_path(aes(y = z)) +
+  scale_colour_manual(values = prediction_colours) +
+  my_theme() +
+  xlab("Time (s)") +
+  ylab("Acceleration (g)")
+
+
+
+```
+
 ## Energy Over the Day
 How does mean activity change throughout the day depending on the bib status.
 ```{r daily_energy, fig.width=12, fig.height=5}
@@ -65,11 +121,12 @@ plot_data <- final_data %>%
 
 plot_data2 <- final_data %>%
   group_by(ID, bib_status, prediction) %>%
+  na.omit() %>%
   summarise(mean = mean(mean_VDBA))
 
 # make the plots
-p1 <- ggplot(plot_data, aes(y = mean, x = hour, colour = bib_status)) +
-  geom_point(aes(x = as.factor(hour))) +
+p1 <- ggplot(plot_data, aes(y = mean, x = as.numeric(hour), colour = bib_status)) +
+  geom_point() +
   geom_smooth(method = "loess", se = FALSE, span = 0.3) +
   xlab("Hour") +
   ylab("Mean VDBA (g)") +
@@ -109,7 +166,8 @@ Does the frequency of behaviours change throughout the day?
 ```{r proportion_behaviours}
 plot_data3 <- final_data %>%
   group_by(hour, bib_status, prediction) %>%
-  summarise(total_count = n())
+  summarise(total_count = n()) %>%
+  mutate(prop = total_count / sum(total_count))
 
 plot_data4 <- final_data %>%
   group_by(bib_status, prediction) %>%
@@ -118,19 +176,17 @@ plot_data4 <- final_data %>%
   mutate(prop = total_count / sum(total_count))
 
 
-p3 <- ggplot(plot_data3, aes(x = hour, y = total_count, fill = prediction)) +
+p3 <- ggplot(plot_data3, aes(x = hour, y = prop, fill = prediction)) +
   geom_area(position = "stack", alpha = 0.8) +
   facet_wrap(~ bib_status, ncol = 1, strip.position = "bottom") +  # move facet titles
   scale_fill_manual(values = prediction_colours) +
-  xlab("Hour") +
-  ylab("Count of behaviours") +
+  labs(x = "Hour", y = "Proportion of behaviours") +
   my_theme()
 
 p4 <- ggplot(plot_data4, aes(x = bib_status, y = total_count, fill = prediction)) +
   geom_bar(stat = "identity", position = "fill", alpha = 0.8) +
   scale_fill_manual(values = prediction_colours) +
-  xlab("Bib Status") +
-  ylab("Proportion of behaviours") +
+  labs(y = NULL, x = "Bib Status") +
   my_theme()
 
 
@@ -150,31 +206,6 @@ plot2
 
 # stats
 
-# compute counts and proportions directly from final_data
-plot_data_prop <- final_data %>%
-  group_by(ID, date, bib_status, prediction) %>%
-  summarise(total_count = n(), .groups = "drop") %>%
-  group_by(ID, date, bib_status) %>%
-  mutate(prop = total_count / sum(total_count)) %>% 
-  ungroup()
-
-# get unique behaviours
-# behaviours <- unique(plot_data_prop$prediction)
-# 
-# # fit LMM per behaviour and store results
-# results <- lapply(behaviours, function(b) {
-#   df <- filter(plot_data_prop, prediction == b)
-#   mod <- lmer(prop ~ bib_status + (1 | ID), data = df)
-#   summary(mod)$coefficients %>% 
-#     as.data.frame() %>%
-#     mutate(prediction = b)   # keep behaviour name in output
-# })
-# 
-# # combine all results
-# results_df <- bind_rows(results)
-# results_df <- results_df %>%
-#   mutate(significant = ifelse(`Pr(>|t|)` < 0.05, TRUE, FALSE))
-# results_df
 
 ```
 

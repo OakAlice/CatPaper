@@ -71,6 +71,7 @@ source("Scripts/GeneratingPredictions/GeneratingFeaturesUnlabelled.R")
 # source("Scripts/GeneratingPredictions/CheckingReasonableness.R")
 
 # Quantifying effect of bib -----------------------------------------------
+source("Scripts/UnderstandingEcology/CreateFinalBibData.R")
 source("Scripts/UnderstandingEcology/BibAnalysis.R")
 
 # Making figures for the paper --------------------------------------------
