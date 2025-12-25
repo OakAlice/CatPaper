@@ -5,12 +5,13 @@ unlabelled_features <- list.files("Output/Predictions", full.names = TRUE, patte
 # for each of the unlabelled files, generate features and then make predictions
 lapply(unlabelled_features, function(x){
   
-  if (file.exists(file.path("Output/Predictions", paste0(name, "_unlabelled_predictions.csv")))){
-    print("file already exists")
-    next
-  }
   fname <- tools::file_path_sans_ext(basename(x))
   name <- str_split(fname, "_")[[1]][1]
+  
+  if (file.exists(file.path("Output/Predictions", paste0(name, "_unlabelled_predictions.csv")))){
+    print("file already exists")
+    return(NULL)
+  }
   
   dat <- fread(x)
   
