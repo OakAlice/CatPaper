@@ -28,14 +28,12 @@ vdba_data <- vdba_data %>%
       activity_status == "inactive"                                 ~ "inactive",
       mean_VDBA > 0.4 * max(vdba_data$mean_VDBA, na.rm = TRUE)      ~ "high",
       mean_VDBA > 0.1 *  max(vdba_data$mean_VDBA, na.rm = TRUE)     ~ "medium",
-      mean_VDBA > 0.05 * max(vdba_data$mean_VDBA, na.rm = TRUE)     ~ "low",
-      TRUE                                                          ~ "Other"
+      TRUE                                                          ~ "low"
     )
   )
 
-# dat <- vdba_data[1:100000,]
-# ggplot(dat, aes(x = seq_len(nrow(dat)), y = vedba, colour = activity_level, group = 1)) +
-#   geom_line(linewidth = 0.3)
+# dat <- vdba_data
+# ggplot(dat, aes(x = seq_len(nrow(dat)), y = mean_VDBA, colour = activity_level, group = 1)) + geom_line(linewidth = 0.3)
 
 # combine with the features and save
 dat <- merge(feature_data, vdba_data, by = c("ID", "time", "activity"), all.x = TRUE)

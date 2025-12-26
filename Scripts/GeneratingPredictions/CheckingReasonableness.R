@@ -3,38 +3,57 @@
 # whether it's evern reasonable
 # without labelled data, that is hard, but we can try our best through visualisation
 # this script is an interactive scroll through for looking and checking how the preds align with the accel
+# I iterated this dozens of times until I was happy with the smoothing logic etc.
 
-# TODO: Automate this 
+cat <- "Jaya" # select a random cat
 
-
-cat <- "Timmy"
-
-# load in the raw accel
+# load raw accelerometer data
 rawdat <- fread(paste0("Data/RawData/", cat, "_1.csv"))
-colnames(rawdat) <- c("time", "x", "y", "z")
+setnames(rawdat, c("time", "x", "y", "z"))
+# rawdat$time <- as.POSIXct((rawdat$time - 719529)*86400, origin = "1970-01-01", tz = "UTC")
 
-# load in the predictions
-preds <- fread(file.path("Output/Predictions", paste0(cat, "_unlabelled_predictions.csv")))
+# load predictions
+preds <- fread("Output/Results/Final_predictions.csv") %>%
+  filter(ID == cat)
 
-# combine
-setDT(rawdat)
 setDT(preds)
+
+# join on nearest timestamp
 setkey(rawdat, time)
 setkey(preds, time)
 combdat <- preds[rawdat, roll = "nearest"]
 
-prediction_colours <- c("FastLocomotion" = "#b477a3",
-                        "Locomotion" = "#e89fbf",
-                        "high" = "#d8907c",
-                        "medium" = "#e6c078",
-                        "low" = "lightgreen",
-                        "inactive" = "#7ca6d8")
+# colours for categorical prediction
+prediction_colours <- c(
+  "Locomotion" = "#e89fbf",
+  "high"       = "#d8907c",
+  "medium"     = "#e6c078",
+  "low"        = "lightgreen",
+  "inactive"   = "#7ca6d8"
+)
 
-# plot them
-combdat_plot <- combdat[10000:20000,]
-ggplot(combdat_plot, aes(x = seq(1:nrow(combdat_plot)), colour = prediction, group = 1)) + 
+# subset for plotting
+combdat_plot <- combdat[56000:59000,]
+
+# time axis in seconds
+combdat_plot[, t := (seq_len(.N) - 1) / 50] # where 50 is the Hz
+
+good_plot <- ggplot(combdat_plot, aes(x = t, group = 1, colour = prediction)) +
   geom_path(aes(y = x)) +
   geom_path(aes(y = y)) +
   geom_path(aes(y = z)) +
   scale_colour_manual(values = prediction_colours) +
-  my_theme()
+  my_theme() +
+  labs(x = "Time (s)", y = "Acceleration (g)", colour = "Prediction")
+
+good_plot
+
+# and when you're happy with it, save as an example and lock in the results :)
+ggsave(
+  filename = "Manuscript/Figures/example_of_prediction.png",
+  plot = good_plot,
+  width = 8,
+  height = 4,
+  dpi = 300
+)
+

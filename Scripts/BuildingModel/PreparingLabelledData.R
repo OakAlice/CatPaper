@@ -72,7 +72,8 @@ rough_cut <- labelled_data %>%
 # last changes
 rough_cut <- rough_cut %>%
   mutate(time = as.POSIXct((time - 719529)*86400, origin = "1970-01-01", tz = "UTC"),
-         activity = ifelse(activity == "NaN", "Unknown", activity))
+         activity = ifelse(activity == "NaN", "Unknown", activity),
+         activity = ifelse(activity == "Fast_Locomotion", "Locomotion", activity))
 fwrite(rough_cut, "Output/ModelBuilding/cleaned_labelled_data.csv")
  
 # rough_cut2 <- rough_cut %>% arrange(ID, time)

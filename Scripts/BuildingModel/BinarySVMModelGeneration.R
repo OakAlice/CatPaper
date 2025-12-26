@@ -2,6 +2,10 @@
 
 all_data <- fread("Output/ModelBuilding/all_labelled_feat_vdba.csv")
 
+# temporarily subset the data so it doesnt use features I didnt generate the first time around
+# good_feats <- colnames(fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/Predictions/Skippy_unlabelled_features.csv"))
+#  all_data <- all_data %>% select(all_of(good_feats))
+
 for (target in target_activities){
   
   # load in the optimal hyperparameters
@@ -35,9 +39,11 @@ for (target in target_activities){
     kernel = parameters$best_kernel,
     cost   = parameters$best_cost,
     gamma  = parameters$best_gamma,
-    class.weights = class_weights
+    class.weights = class_weights,
+    probability = TRUE
   )
   
   # save this model as an RDS object
   saveRDS(SVM_model, file = file.path("Output/ModelBuilding", paste0(target, "_SVM.RDS")))
 }
+

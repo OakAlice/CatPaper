@@ -30,7 +30,7 @@ source("Scripts/FeaturesFunctions.R")
 source("Scripts/BuildingModel/BinarySVMFunctions.R")
 
 window_length <- 1 # in seconds
-target_activities <- c("Locomotion", "Fast_Locomotion") # specific things to find
+target_activities <- c("Locomotion") # specific things to find
 
 # Generating data ----------------------------------------------------------
 

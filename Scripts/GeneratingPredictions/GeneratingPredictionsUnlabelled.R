@@ -8,10 +8,10 @@ lapply(unlabelled_features, function(x){
   fname <- tools::file_path_sans_ext(basename(x))
   name <- str_split(fname, "_")[[1]][1]
   
-  if (file.exists(file.path("Output/Predictions", paste0(name, "_unlabelled_predictions.csv")))){
-    print("file already exists")
-    return(NULL)
-  }
+  # if (file.exists(file.path("Output/Predictions", paste0(name, "_unlabelled_predictions.csv")))){
+  #   print("file already exists")
+  #   return(NULL)
+  # }
   
   dat <- fread(x)
   
@@ -50,21 +50,24 @@ lapply(unlabelled_features, function(x){
     num_unlabelled <- clean_data %>%
       select(!!!syms(good_features))
     
-    tags[[target]] <- predict(SVM_model, newdata = num_unlabelled)
-  }
-  
-  # combine these predictions to make a final "predictions" column
-  # this is very basic code at the moment
-  # TODO: Fix this to make it variable target names
-  tags <- tags %>%
-    mutate(
-      prediction = case_when(
-        Fast_Locomotion == "Fast_Locomotion" ~ "Fast_Locomotion",
-        Locomotion      == "Locomotion"      ~ "Locomotion",
-        TRUE                                ~ activity_level
-      )
+    preds <- predict(
+      SVM_model,
+      newdata = num_unlabelled,
+      probability = TRUE
     )
+    
+    pred_class <- as.character(preds)
+    tags[[target]] <- pred_class
+
+    probs <- attr(preds, "probabilities")
+    pred_prob <- probs[
+      cbind(seq_len(nrow(probs)), match(pred_class, colnames(probs)))
+    ]
+    
+    tags[[paste0(target, "_prob")]] <- pred_prob
+  }
 
   # save for this individual
   fwrite(tags, file.path("Output/Predictions", paste0(name, "_unlabelled_predictions.csv")))
 })
+

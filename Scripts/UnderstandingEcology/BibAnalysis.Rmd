@@ -22,6 +22,7 @@ pacman::p_load(tidyverse,
 # load in the data and clean it up
 final_data <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/Results/Final_predictions.csv") %>%
   filter(!bib_status == "") %>%
+  mutate(time = as.POSIXct((time - 719529)*86400, origin = "1970-01-01", tz = "UTC")) %>%
   mutate(hour = hour(time),
          date = as.Date(time),
          prediction = ifelse(prediction == "FastLocomotion", "Locomotion", prediction)) %>%
@@ -59,56 +60,11 @@ my_theme <- function() {
 Before making predictions with the model, we should assess the performance from the cross-validation.
 ```{r}
 Locomotion_CV <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/ModelBuilding/Locomotion_CrossValidation.csv")
-Fast_Locomotion_CV <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/ModelBuilding/Fast_Locomotion_CrossValidation.csv")
 
 Locomotion_performance <- Locomotion_CV %>% select(-fold, -Accuracy) %>%
   summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
   mutate(Behaviour = "Locomotion")
-Fast_Locomotion_performance <- Fast_Locomotion_CV %>% select(-fold, -Accuracy) %>%
-  summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
-  mutate(Behaviour = "Fast_Locomotion")
-
-performance <- rbind(Locomotion_performance, Fast_Locomotion_performance)
-performance
-```
-
-## Prediction Examples
-Making some plots to show what the predictions were like
-```{r fig.width=10, fig.height=4}
-cat <- "Juliet"
-
-# load in the raw accel and predictions
-rawdat <- fread(paste0("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Data/RawData/", cat, "_1.csv"))
-colnames(rawdat) <- c("time", "x", "y", "z")
-preds <- fread(file.path("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/Predictions", paste0(cat, "_unlabelled_predictions.csv")))
-
-# combine
-setDT(rawdat)
-setDT(preds)
-setkey(rawdat, time)
-setkey(preds, time)
-combdat <- preds[rawdat, roll = "nearest"]
-
-combdat_plot <- combdat[10000:25000,]
-# plot them
-ggplot(
-  combdat_plot,
-  aes(
-    x = (seq_len(nrow(combdat_plot)) - 1) / 50, # 50 for hz
-    colour = prediction,
-    group = 1
-  )
-) +
-  geom_path(aes(y = x)) +
-  geom_path(aes(y = y)) +
-  geom_path(aes(y = z)) +
-  scale_colour_manual(values = prediction_colours) +
-  my_theme() +
-  xlab("Time (s)") +
-  ylab("Acceleration (g)")
-
-
-
+Locomotion_performance
 ```
 
 ## Energy Over the Day

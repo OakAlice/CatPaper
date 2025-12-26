@@ -6,6 +6,11 @@
 
 all_data <- fread("Output/ModelBuilding/all_labelled_feat_vdba.csv")
 
+# temporarily subset the data so it doesnt use features I didnt generate the first time around
+# finished_dat <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/Predictions/Timmy_unlabelled_features.csv")
+# good_features <- colnames(finished_dat)
+# all_data <- all_data %>% select(all_of(good_features))
+
 # Code --------------------------------------------------------------------
 # define the bounds for hyperpatameter tuning
 kernel_map <- c("radial", "linear", "polynomial")
@@ -22,17 +27,7 @@ ID_groups <- data.frame(
   group = sample(rep(1:4, length.out = length(unique_IDs)))
 )
 
-# make changes to the data that make it approrpiate for these models
-all_data <- all_data %>%
-  mutate(
-    activity_status = if_else(activity_status == "inactive", 0, 1),
-    activity_level  = recode(activity_level,
-                             "inactive" = 0L,
-                             "low"      = 1L,
-                             "medium"   = 2L,
-                             "high"     = 3L)
-  )
-# build a walking and running detector
+# build a walking detector
 for (target in target_activities) {
   results <- data.frame()  # initialise
   
