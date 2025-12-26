@@ -29,7 +29,7 @@ prediction_colours <- c(
   "high"       = "#d8907c",
   "medium"     = "#e6c078",
   "low"        = "lightgreen",
-  "inactive"   = "#7ca6d8"
+  "inactive"   = "#0097b2"
 )
 
 # subset for plotting
@@ -39,9 +39,9 @@ combdat_plot <- combdat[56000:59000,]
 combdat_plot[, t := (seq_len(.N) - 1) / 50] # where 50 is the Hz
 
 good_plot <- ggplot(combdat_plot, aes(x = t, group = 1, colour = prediction)) +
-  geom_path(aes(y = x)) +
-  geom_path(aes(y = y)) +
-  geom_path(aes(y = z)) +
+  geom_path(aes(y = x), linewidth = 1) +
+  geom_path(aes(y = y), linewidth = 1) +
+  geom_path(aes(y = z), linewidth = 1) +
   scale_colour_manual(values = prediction_colours) +
   my_theme() +
   labs(x = "Time (s)", y = "Acceleration (g)", colour = "Prediction")
@@ -52,8 +52,7 @@ good_plot
 ggsave(
   filename = "Manuscript/Figures/example_of_prediction.png",
   plot = good_plot,
-  width = 8,
-  height = 4,
-  dpi = 300
+  width = 200, height = 100, units = "mm", dpi = 300,
+  bg = "transparent"
 )
 

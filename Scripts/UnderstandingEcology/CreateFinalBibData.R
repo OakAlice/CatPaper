@@ -11,7 +11,7 @@ cat_info <- cat_info %>%
 pred_files <- list.files("Output/Predictions",pattern = "_unlabelled_predictions.csv", full.names = TRUE)
 pred_data <- lapply(pred_files, function(x){ fread(x)})
 pred_data <- rbindlist(pred_data)
-# pred_data$time <- as.POSIXct((pred_data$time - 719529)*86400, origin = "1970-01-01", tz = "UTC")
+pred_data$time <- as.POSIXct((pred_data$time - 719529)*86400, origin = "1970-01-01", tz = "UTC")
 
 # combine these predictions to make a final "predictions" column
 # select the highest proabbility target class, but only if the prediction probability is greater than threshold

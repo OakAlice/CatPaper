@@ -11,10 +11,10 @@ walking <- dat %>%
   dplyr::filter(activity == "Locomotion") %>% 
   slice(1000:1200)
 running <- dat %>% 
-  dplyr::filter(activity %in% c("Fast_Locomotion")) %>% 
+  dplyr::filter(activity %in% c("Locomotion")) %>% 
   slice(1:200)
 # check the sections independently
-plot_dat <- running
+plot_dat <- walking
 ggplot(plot_dat, aes(x = seq_len(nrow(plot_dat)), y = x)) + geom_line()
 
 # combine them
@@ -40,9 +40,9 @@ subset[, smooth_vdba := frollmean(vedba, n = win, align = "center", fill = NA)]
 
 # plots 
 raw <- ggplot(subset, aes(x = seq_len(nrow(subset)))) +
-  geom_line(aes(y = x), colour = "#b477a3", linewidth = 1) +
+  geom_line(aes(y = x), colour = "#e89fbf", linewidth = 1) +
   geom_line(aes(y = y), colour = "#e6c078", linewidth = 1) +
-  geom_line(aes(y = z), colour = "#8fbc8f", linewidth = 1) +
+  geom_line(aes(y = z), colour = "lightgreen", linewidth = 1) +
   my_theme() +
   ylab("Acceleration (g)") +
   theme(
@@ -67,7 +67,7 @@ ExampleTraceShapes <- raw / vdba
 
 # save to disk
 ggsave(
-  filename = "Output/Results/ExampleTraceShapes.png",
+  filename = "Manuscript/Figures/ExampleTraceShapes.png",
   plot = ExampleTraceShapes,
   width = 180, height = 120, units = "mm", dpi = 300,
   bg = "transparent"
