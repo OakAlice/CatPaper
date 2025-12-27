@@ -59,7 +59,7 @@ final_data$prediction <- factor(final_data$prediction, levels = c("Locomotion", 
 
 ## Summarising data
 What data was used, and how much of it?
-```{r}
+```{r summarising available data}
 IDs <- length(unique(final_data$ID))
 duration_total <- nrow(final_data)/60/60/24 # days
 duration_bibon <- nrow(final_data[final_data$bib_status == "On"])/60/60/24
@@ -75,7 +75,7 @@ print(cat("Individuals:", IDs, "\n",
 
 ## Model Performance
 Before making predictions with the model, we should assess the performance from the cross-validation.
-```{r}
+```{r summarising model performance}
 Locomotion_CV <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/ModelBuilding/Locomotion_CrossValidation.csv")
 
 Locomotion_performance <- Locomotion_CV %>% select(-fold, -Accuracy) %>%
@@ -86,19 +86,12 @@ Locomotion_performance
 
 ## Energy Over the Day
 How does mean activity change throughout the day depending on the bib status.
-```{r daily_energy, fig.width=12, fig.height=5}
-# wrangle the data
-plot_data <- final_data %>%
+```{r daily energy, fig.width=12, fig.height=5}
+# create the plots with necessary data
+d1.1 <- final_data %>%
   group_by(ID, date, hour, bib_status) %>%
   summarise(mean = mean(mean_VDBA))
-
-plot_data2 <- final_data %>%
-  group_by(ID, bib_status, prediction) %>%
-  na.omit() %>%
-  summarise(mean = mean(mean_VDBA))
-
-# make the plots
-p1 <- ggplot(plot_data, aes(y = mean, x = as.numeric(hour), colour = bib_status)) +
+p1.1 <- ggplot(d1.1, aes(y = mean, x = as.numeric(hour), colour = bib_status)) +
   geom_point() +
   geom_smooth(method = "loess", se = FALSE, span = 0.3) +
   xlab("Hour") +
@@ -106,14 +99,18 @@ p1 <- ggplot(plot_data, aes(y = mean, x = as.numeric(hour), colour = bib_status)
   my_theme() + 
   scale_colour_manual(values = bib_colours)
 
-p2 <- ggplot(plot_data2, aes(x = prediction, y = mean, fill = bib_status)) +
+d1.2 <- final_data %>%
+  group_by(ID, bib_status, prediction) %>%
+  na.omit() %>%
+  summarise(mean = mean(mean_VDBA))
+p1.2 <- ggplot(d1.2, aes(x = prediction, y = mean, fill = bib_status)) +
   geom_boxplot() +
-  xlab("Bib Status") +
+  xlab("Activity") +
   ylab("Mean VDBA (g)") +
   my_theme() + 
   scale_fill_manual(values = bib_colours)
   
-plot1 <- (p1 + p2) +
+f1 <- (p1.1 + p1.2) +
     plot_layout(guides = "collect") &
     theme(
       legend.position = "bottom",
@@ -124,53 +121,48 @@ plot1 <- (p1 + p2) +
       legend.spacing.x = unit(0.3, "cm"),
       legend.spacing.y = unit(0.2, "cm")
     )
-  
-plot1
+f1
 
 # do the stats
-stat_data <- final_data %>%
+s1 <- final_data %>%
   group_by(ID, date, hour, bib_status, prediction) %>%
   summarise(mean = mean(mean_VDBA))
-m <- lmer(
+m1 <- lmer(
   log(mean) ~ bib_status * prediction + 
     (1 | ID),
-  data = stat_data
+  data = s1
 )
-anova(m)
-summary(m)
+anova(m1)
+summary(m1)
 
 ```
 
 ## Behavioural Frequency
 Does the frequency of behaviours change throughout the day?
-```{r proportion_behaviours}
-plot_data3 <- final_data %>%
+```{r proportion behaviours}
+d2.1 <- final_data %>%
   group_by(hour, bib_status, prediction) %>%
   summarise(total_count = n()) %>%
   mutate(prop = total_count / sum(total_count))
-
-plot_data4 <- final_data %>%
-  group_by(bib_status, prediction) %>%
-  summarise(total_count = n()) %>%
-  group_by(bib_status) %>%
-  mutate(prop = total_count / sum(total_count))
-
-
-p3 <- ggplot(plot_data3, aes(x = hour, y = prop, fill = prediction)) +
+p2.1 <- ggplot(d2.1, aes(x = hour, y = prop, fill = prediction)) +
   geom_area(position = "stack", alpha = 0.8) +
   facet_wrap(~ bib_status, ncol = 1, strip.position = "bottom") +  # move facet titles
   scale_fill_manual(values = prediction_colours) +
   labs(x = "Hour", y = "Proportion of behaviours") +
   my_theme()
 
-p4 <- ggplot(plot_data4, aes(x = bib_status, y = total_count, fill = prediction)) +
+d2.2 <- final_data %>%
+  group_by(bib_status, prediction) %>%
+  summarise(total_count = n()) %>%
+  group_by(bib_status) %>%
+  mutate(prop = total_count / sum(total_count))
+p2.2 <- ggplot(d2.2, aes(x = bib_status, y = total_count, fill = prediction)) +
   geom_bar(stat = "identity", position = "fill", alpha = 0.8) +
   scale_fill_manual(values = prediction_colours) +
   labs(y = NULL, x = "Bib Status") +
   my_theme()
 
-
-plot2 <- (p3 + p4) +
+f2 <- (p2.1 + p2.2) +
     plot_layout(guides = "collect") &
     theme(
       legend.position = "bottom",
@@ -181,34 +173,22 @@ plot2 <- (p3 + p4) +
       legend.spacing.x = unit(0.3, "cm"),
       legend.spacing.y = unit(0.2, "cm")
     )
-  
-plot2
+f2
 
 # stats
-stat_data2 <- final_data %>%
-  group_by(ID, bib_status, prediction) %>%
-  summarise(total_count = n()) %>%
-  mutate(prop = total_count / sum(total_count)) %>%
-  group_by(ID, bib_status) %>%
-  mutate(prop = total_count / sum(total_count))
-
-glmer(
-  prediction ~ bib_status + (1 | ID),
-  data = stat_data2,
-  family = binomial
-)
+# haven't figured out the stats here yet
 
 ```
 
 ## Inter-Individual Variation
 Did the bib affect cats differently? and did it depend on their morphology or personality?
 
-```{r fig.width=18, fig.height=6}
+```{r inter-individual variation, fig.width=18, fig.height=6}
 # plot of the slopes
-stat_data3 <- final_data %>%
+d3.1 <- final_data %>%
   group_by(ID, bib_status, hour, date) %>%
   summarise(mean = mean(mean_VDBA), )
-slopes <- ggplot(stat_data3, aes(bib_status, mean, colour = ID, group = ID)) +
+p3.1 <- ggplot(d3.1, aes(bib_status, mean, colour = ID, group = ID)) +
   stat_summary(fun = mean, geom = "line", linewidth = 2) +
   stat_summary(fun = mean, geom = "point", size = 2) +
   my_theme() +
@@ -217,36 +197,35 @@ slopes <- ggplot(stat_data3, aes(bib_status, mean, colour = ID, group = ID)) +
   theme(legend.position = "none")
 
 leg_lengths <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Data/CatInfo.csv")
-stat_data3 <- merge(stat_data3, leg_lengths, by = "ID")
+d3.1 <- merge(d3.1, leg_lengths, by = "ID")
 
 # plot of the sploes against leg length
-ind_means <- stat_data3 %>%
+d3.2 <- d3.1 %>%
   group_by(ID, bib_status) %>%
-  summarise(mean_pred = mean(mean), .groups = "drop")
-ind_slopes <- ind_means %>%
+  summarise(mean_pred = mean(mean), .groups = "drop") %>%
   pivot_wider(names_from = bib_status, values_from = mean_pred) %>%
   mutate(slope = On - Off)  # difference from Off to On
-# Add FrontLegLength (assuming it's constant per individual)
-frontleg_df <- stat_data3 %>%
+# Add FrontLegLength
+frontleg_df <- d3.1 %>%
   select(ID, FrontLegLength, BodyLength) %>%
   distinct()
-ind_slopes <- left_join(ind_slopes, frontleg_df, by = "ID")
+d3.2 <- left_join(d3.2, frontleg_df, by = "ID")
 
-leg_length <- ggplot(ind_slopes, aes(x = FrontLegLength, y = slope, colour = ID)) +
+p3.2 <- ggplot(d3.2, aes(x = FrontLegLength, y = slope, colour = ID)) +
   geom_point(size = 3) +
-  geom_smooth(method = "lm", se = FALSE, color = "#0097b2", linewidth = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linewidth = 2) +
   labs(x = "Front Leg Length (cm)", y = "Change in mean prediction (On − Off)") +
   my_theme() +
   scale_colour_manual(values = individual_colours) + theme(legend.position = "none")
 
-body_length <- ggplot(ind_slopes, aes(x = BodyLength, y = slope, colour = ID)) +
+p3.3 <- ggplot(d3.2, aes(x = BodyLength, y = slope, colour = ID)) +
   geom_point(size = 3) +
-  geom_smooth(method = "lm", se = FALSE, color = "#0097b2", linewidth = 2) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linewidth = 2) +
   labs(x = "Body Length (cm)", y = "Change in mean prediction (On − Off)") +
   my_theme() +
   scale_colour_manual(values = individual_colours) + theme(legend.position = "none")
 
-plot3 <- (slopes + leg_length + body_length) +
+f3 <- (p3.1 + p3.2 + p3.3) +
     plot_layout(guides = "collect") &
     theme(
       legend.position = "bottom",
@@ -257,71 +236,82 @@ plot3 <- (slopes + leg_length + body_length) +
       legend.spacing.x = unit(0.3, "cm"),
       legend.spacing.y = unit(0.2, "cm")
     )
-  
-plot3
+f3
 
-
-# individual effects
-m <- lmer(log(mean) ~ bib_status + (1 | ID), data = stat_data3)
-m_rs <- lmer(log(mean) ~ bib_status + (bib_status | ID), data = stat_data3)
-anova(m, m_rs)
+# stats
+m3 <- lmer(log(mean) ~ bib_status + (1 | ID), data = d3.1)
+m_rs <- lmer(log(mean) ~ bib_status + (bib_status | ID), data = d3.1)
+anova(m3, m_rs)
 
 # effect of morphology
-mod_interaction <- lmer(mean ~ bib_status * FrontLegLength + 
+m3_interaction <- lmer(mean ~ bib_status * FrontLegLength + 
                          bib_status * BodyLength + 
                          (bib_status | ID),
-                         data = stat_data3)
-summary(mod_interaction)
+                         data = d3.1)
+summary(m3_interaction)
 
 ```
 
 ## Assessing learning curve 
 Was the effect of the bib strongest on day 1 of wearing the bib
-```{r}
+```{r learning curve}
 setDT(final_data)
 
 # Only bib On data
-bib_data <- final_data[bib_status == "On"]
+d4.1 <- final_data[bib_status == "On"]
 
 # Day relative to first bib-on day
-bib_data[, first_bib_day := min(date), by = ID]
-bib_data[, day := as.integer(date - first_bib_day) + 1]
+d4.1[, first_bib_day := min(date), by = ID]
+d4.1[, day := as.integer(date - first_bib_day) + 1]
 
 # Daily summary for bib On
-daily_summary <- bib_data[, .(
+d4.1 <- d4.1[, .(
   mean_VDBA = mean(mean_VDBA),
   se_pred = sd(mean_VDBA)/sqrt(.N)
 ), by = .(ID, day)]
 
 # Bib Off baseline
-bib_off <- final_data %>%
+d4.2 <- final_data %>%
   filter(bib_status == "Off") %>%
   group_by(ID) %>%
   summarise(mean_VDBA = mean(mean_VDBA), .groups = "drop") %>%
   mutate(day = 0, bib_status = "Off")
 
 # Combine
-combined <- bind_rows(
-  bib_off %>% rename(bib_status = bib_status),
-  daily_summary %>% mutate(bib_status = "On")
+d4.3 <- bind_rows(
+  d4.2 %>% rename(bib_status = bib_status),
+  d4.1 %>% mutate(bib_status = "On")
 )
 
 # Plot
-ggplot(combined, aes(x = day, y = mean_VDBA, colour = ID)) +
+ggplot(d4.3, aes(x = day, y = mean_VDBA, colour = ID)) +
   geom_point(size = 2) +
   geom_line(aes(group = ID), alpha = 0.3, linewidth = 1) +
   stat_summary(aes(group = bib_status), fun = mean, geom = "line", size = 1.5) +
   scale_colour_manual(values = individual_colours) +
-  labs(x = "Day since bib worn", y = "Mean VDBA", colour = "ID") +
+  labs(x = "Days of wearing bib", y = "Mean VDBA", colour = "ID") +
   my_theme()
 
-# stats to look at the efefct of day
-mod_day <- lmer(mean_VDBA ~ bib_status * factor(day) + (1 | ID),
-                data = combined)
+# stats
+m4 <- lmer(mean_VDBA ~ bib_status * factor(day) + (1 | ID),
+                data = d4.3)
+summary(m4)
 
-summary(mod_day)
+# now looking at the indivudal
+s1 <- d4.3 %>% dplyr::filter(bib_status == "On" & day > 1)
+setDT(s1) 
+
+slopes <- s1[, {
+  if (.N >= 2) {  # need at least 2 points to fit a slope
+    slope <- coef(lm(mean_VDBA ~ day))[2]
+  } else {
+    slope <- NA_real_
+  }
+  .(slope = slope)
+}, by = ID]
+
+slopes
+
+t.test(slopes$slope, mu = 0)
 
 ```
-
-
-
