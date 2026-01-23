@@ -33,6 +33,7 @@ CatPaper/
 2. Convert this labelled data into feature data and use to train a basic behavioural classifier.
 3. Convert the unlabelled data to feature data as well. 
 4. Apply the models to the unlabelled data to generate predictions.
+5. Compare bib conditions.
 
 ## Acknowledgements 
-Project was conceptualised by Chris Clemente. Unlabelled data collected by Nicole Galea in 2019. New data and all analysis conducted by Oakleigh Wilson (me). Write up by me.
+Project was conceptualised by Chris Clemente. Unlabelled data collected by Nicole Galea in 2019. New data and all analysis conducted by Oakleigh Wilson (me). Write up by me with support from Jasmin Annett.
