@@ -1,8 +1,8 @@
 # Main --------------------------------------------------------------------
 # Main script for the analysis of the cat data
 
-setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
-
+# setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
+setwd("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper")
 
 # TODO list ---------------------------------------------------------------
 # normalise features in model training and before classification of the unlabelled
@@ -23,7 +23,9 @@ pacman::p_load(tidyverse,
                e1071,
                caret,
                rBayesianOptimization,
-               patchwork)
+               mgcv,
+               patchwork,
+               purrr)
 
 source("Scripts/FigureFunctions.R")
 source("Scripts/FeaturesFunctions.R")
@@ -74,7 +76,10 @@ source("Scripts/GeneratingPredictions/GeneratingFeaturesUnlabelled.R")
 source("Scripts/UnderstandingEcology/CreateFinalBibData.R")
 source("Scripts/UnderstandingEcology/BibAnalysis.R")
 
-# Making figures for the paper --------------------------------------------
+
+# GPS Data ----------------------------------------------------------------
+source("Scripts/GPS/PreparingGPS.R")
+source("Scripts/GPS/AnalysingGPS.R")
 
 
 

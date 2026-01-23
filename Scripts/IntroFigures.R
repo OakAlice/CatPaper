@@ -40,8 +40,8 @@ subset[, smooth_vdba := frollmean(vedba, n = win, align = "center", fill = NA)]
 
 # plots 
 raw <- ggplot(subset, aes(x = seq_len(nrow(subset)))) +
-  geom_line(aes(y = x), colour = "#e89fbf", linewidth = 1) +
-  geom_line(aes(y = y), colour = "#e6c078", linewidth = 1) +
+  geom_line(aes(y = x), colour = "khaki2", linewidth = 1) +
+  geom_line(aes(y = y), colour = "#e89fbf", linewidth = 1) +
   geom_line(aes(y = z), colour = "lightgreen", linewidth = 1) +
   my_theme() +
   ylab("Acceleration (g)") +
