@@ -78,7 +78,7 @@ source("Scripts/UnderstandingEcology/BibAnalysis.R")
 
 
 # GPS Data ----------------------------------------------------------------
-source("Scripts/GPS/PreparingGPS.R")
+source("Scripts/GPS/ExtractingGPS.R")
 source("Scripts/GPS/AnalysingGPS.R")
 
 

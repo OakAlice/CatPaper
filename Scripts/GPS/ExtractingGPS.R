@@ -12,6 +12,7 @@ Galea_sorted <- lapply(files, function(x){
 })
 Galea_sorted <- rbindlist(Galea_sorted)
 Galea_sorted$ID <- ifelse(Galea_sorted$ID == "Freddy", "Freddie", Galea_sorted$ID)
+Galea_sorted$ID <- ifelse(Galea_sorted$ID == "Puddie", "Puddy", Galea_sorted$ID)
 
 ggplot(Galea_sorted, aes(x = Longitude, Latitude, colour = as.factor(BibStatus))) + geom_path() +
   facet_wrap(~ID, nrow = 2, scales = "free") +
@@ -235,12 +236,12 @@ unique_GPS[dates2, BibStatus := i.BibStatus,
 
 
 
-dat <- unique_GPS[unique_GPS$ID == "Calico", ]
+dat <- unique_GPS# [unique_GPS$ID == "Calico", ]
 
 
 ggplot(dat, aes(x = Longitude, y = Latitude, colour = BibStatus)) + 
   geom_path() + 
-  facet_wrap(~as.factor(Date), scales = "free") + 
+  facet_wrap(~as.factor(ID), scales = "free") + 
   my_theme() + theme(axis.text = element_blank(), axis.ticks = element_blank())
 
 
@@ -263,6 +264,11 @@ ggplot(dat, aes(Longitude, Latitude)) +
   theme(axis.text = element_blank(),
         axis.ticks = element_blank())
 
+
+
+
+# Write to file -----------------------------------------------------------
+fwrite(unique_GPS, file.path("Data", "GPSData", "CollatedGPSData.csv"))
 
 
 
