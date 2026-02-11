@@ -10,11 +10,14 @@ knitr::opts_chunk$set(echo = FALSE,
                       message = FALSE,
                       warning = FALSE)
 
-setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
+#setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
+setwd("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper")
 
 pacman::p_load(tidyverse,
                data.table,
                patchwork,
+               cowplot,
+               ggmap,
                lme4,
                lmerTest)
 
@@ -46,7 +49,7 @@ my_theme <- function() {
 
 # setting up data
 # load in the data and clean it up
-final_data <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/Results/Final_predictions.csv") %>%
+final_data <- fread("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper/Output/Results/Final_predictions.csv") %>%
   filter(!bib_status == "") %>%
   mutate(hour = hour(time),
          date = as.Date(time),
@@ -57,6 +60,7 @@ final_data$bib_status <- factor(final_data$bib_status, levels = c("Off", "On"))
 final_data$prediction <- factor(final_data$prediction, levels = c("Locomotion", "high", "medium", "low", "inactive"))
 ```
 
+### Accelerometer Data
 ## Summarising data
 What data was used, and how much of it?
 ```{r summarising available data}
@@ -70,13 +74,21 @@ print(cat("Individuals:", IDs, "\n",
           "Total sampling days:", duration_total, "\n", 
           "Total bib on days:", duration_bibon,  "(", round(duration_bibon/duration_total,2), ")",  "\n",
           "Total bib off days:", duration_biboff, "(", round(duration_biboff/duration_total,2), ")"))
+```
 
+And now just looking at the training data specifically.
+```{r}
+training_data <- fread("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper/Output/ModelBuilding/cleaned_labelled_data.csv")
+
+duration_total <- nrow(training_data)/60/60 # hours
+print(duration_total)
+training_data %>% group_by(activity) %>% count() %>% mutate(time = n/60/60)
 ```
 
 ## Model Performance
 Before making predictions with the model, we should assess the performance from the cross-validation.
 ```{r summarising model performance}
-Locomotion_CV <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Output/ModelBuilding/Locomotion_CrossValidation.csv")
+Locomotion_CV <- fread("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper/Output/ModelBuilding/Locomotion_CrossValidation.csv")
 
 Locomotion_performance <- Locomotion_CV %>% select(-fold, -Accuracy) %>%
   summarise(across(where(is.numeric), mean, na.rm = TRUE)) %>%
@@ -137,6 +149,16 @@ summary(m1)
 
 ```
 
+And calculate how much of a decrease this actually was.
+```{r}
+d1.3 <- final_data %>%
+  group_by(bib_status) %>%
+  summarise(mean = mean(mean_VDBA))
+
+(d1.3$mean[d1.3$bib_status == "Off"] - d1.3$mean[d1.3$bib_status == "On"]) / d1.3$mean[d1.3$bib_status == "Off"]
+
+```
+
 ## Behavioural Frequency
 Does the frequency of behaviours change throughout the day?
 ```{r proportion behaviours}
@@ -181,7 +203,7 @@ f2
 ```
 
 ## Inter-Individual Variation
-Did the bib affect cats differently? and did it depend on their morphology or personality?
+Did the bib affect cats differently? and did it depend on their morphology, sex, or personality?
 
 ```{r inter-individual variation, fig.width=18, fig.height=6}
 # plot of the slopes
@@ -196,7 +218,7 @@ p3.1 <- ggplot(d3.1, aes(bib_status, mean, colour = ID, group = ID)) +
   scale_colour_manual(values = individual_colours) +
   theme(legend.position = "none")
 
-leg_lengths <- fread("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper/Data/CatInfo.csv")
+leg_lengths <- fread("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper/Data/CatInfo.csv")
 d3.1 <- merge(d3.1, leg_lengths, by = "ID")
 
 # plot of the sploes against leg length
@@ -249,6 +271,13 @@ m3_interaction <- lmer(mean ~ bib_status * FrontLegLength +
                          (bib_status | ID),
                          data = d3.1)
 summary(m3_interaction)
+
+# looking at the effect of sex
+m3.2_interaction <- lmer(mean ~ bib_status * Sex + 
+                         (bib_status | ID),
+                         data = d3.1)
+summary(m3.2_interaction)
+
 
 ```
 
@@ -313,5 +342,167 @@ slopes <- s1[, {
 slopes
 
 t.test(slopes$slope, mu = 0)
+
+```
+
+### GPS Data
+
+First we calculate how much data there was.
+```{r}
+gps_smooth <- fread(file.path("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper/Output", "Results", "SmoothedGPSData.csv"))
+
+hours <- gps_smooth %>% group_by(ID) %>% arrange(DateTime, .by_groups = TRUE) %>% summarise(hours = difftime(last(DateTime), first(DateTime))/60/60)
+
+print("total hours:")
+sum(hours$hours)
+
+```
+
+# Plotting
+Plotting the smoothed GPS tracks from the cats with matched bib off/on sampling 
+
+```{r GPS tracks, fig.width=20, fig.height=10}
+bib_colours <- c("BibOn" = "#e89fbf", "BibOff" = "#0097b2")
+register_google(key = API_KEY) # saved in a separate file, not saved to Git
+
+# make a plot for each individual
+p5 <- lapply(unique(gps_smooth$ID), function(id) {
+  
+  dat_id <- gps_smooth %>% filter(ID == id)
+  
+  center_lon <- mean(dat_id$Longitude)
+  center_lat <- mean(dat_id$Latitude)
+  
+  map_sat <- get_googlemap(
+    center = c(lon = center_lon, lat = center_lat),
+    maptype = "satellite",
+    zoom = 18
+  )
+  
+  ggmap(map_sat) +
+    geom_path(data = dat_id, aes(Longitude, Latitude), 
+              alpha = 0.4, linewidth = 0.8, colour = "white") +
+    geom_path(data = dat_id, aes(Lon_smooth, Lat_smooth, colour = BibStatus),
+      linewidth = 1.5) +
+    scale_colour_manual(values = bib_colours) +
+    labs(title = id) +
+    my_theme() +
+    theme(
+      axis.text = element_blank(),
+      axis.ticks = element_blank(),
+      legend.position = "none"
+    )
+})
+
+# join them back togetjer
+p5s <- wrap_plots(
+  lapply(p5, \(p) p + theme(legend.position = "none",
+                               strip.text = element_text(size = 20),
+                               axis.title = element_blank())),
+  ncol = 4
+) + plot_layout(guides = "collect")
+
+p5s
+# note, will need to add the legend elsewhere (I did it in canva)
+```
+
+# Analysing
+Looking at the distance travelled by the individuals when they had a bib vs not.
+
+```{r distance travelled}
+# Calculate daily distances -----------------------------------------------
+setDT(gps_smooth)
+setorder(gps_smooth, ID, DateTime)
+
+d6 <- gps_smooth[
+  ,
+  {
+    lon2 <- shift(Lon_smooth, type = "lead")
+    lat2 <- shift(Lat_smooth, type = "lead")
+    
+    d <- distHaversine(
+      cbind(Lon_smooth, Lat_smooth),
+      cbind(lon2, lat2)
+    )
+    
+    .(daily_distance_m = sum(d, na.rm = TRUE))
+  },
+  by = .(ID, BibStatus)
+]
+
+p6 <- ggplot(d6, aes(BibStatus, daily_distance_m, colour = ID, group = ID)) +
+  # mean overlay in black
+  stat_summary(fun = mean,
+    geom = "line", linewidth = 2, colour = "black", aes(group = 1)
+  ) +
+  stat_summary(fun = mean,
+    geom = "point", size = 2, colour = "black", aes(group = 1)
+  ) +
+  # individual lines
+  geom_line(linewidth = 2) +
+  geom_point(size = 2) +
+  my_theme() +
+  labs(x = "Bib status", y = "Travelled Distance (m)") +
+  scale_colour_manual(values = individual_colours)
+
+# and then do some stats to see whether it changes between the statuses
+m6 <- lmer(daily_distance_m ~ BibStatus + (1 | ID),
+                data = d6)
+summary(m6)
+
+```
+And now a similar analysis for a change in home ranges. 
+```{r home range}
+# Calculate home range ----------------------------------------------------
+sf_gps <- st_as_sf(
+  gps_smooth,
+  coords = c("Lon_smooth", "Lat_smooth"),
+  crs = 4326,   # WGS84
+  remove = FALSE
+)
+
+# project to appropriate UTM zone (in this case we are east Australia)
+sf_gps <- st_transform(sf_gps, 32756) 
+sf_gps$ID_status <- interaction(sf_gps$ID, sf_gps$BibStatus, drop = TRUE)
+
+sp <- as(sf_gps, "Spatial")
+sp_id <- sp[, "ID_status"]
+
+mcp95 <- mcp(
+  sp_id,
+  percent = 95,
+  unin = "m",
+  unout = "km2"
+)
+
+mcp_area <- data.table(
+  ID_status = rownames(mcp95@data),
+  MCP95_km2 = mcp95@data$area
+)
+
+# reannage that data to be able to plot in the same way
+mcp_area[, c("ID", "BibStatus") := tstrsplit(ID_status, "\\.")]
+
+# now make the same plot
+p7 <- ggplot(mcp_area, aes(BibStatus, MCP95_km2, colour = ID, group = ID)) +
+  # mean overlay in black
+  stat_summary(fun = mean,
+    geom = "line", linewidth = 2, colour = "black", aes(group = 1)
+  ) +
+  stat_summary(fun = mean,
+    geom = "point", size = 2, colour = "black", aes(group = 1)
+  ) +
+  # individual lines
+  geom_line(linewidth = 2) +
+  geom_point(size = 2) +
+  my_theme() +
+  labs(x = "Bib status", y = "Home Range (km2)") +
+  scale_colour_manual(values = individual_colours) +
+  theme(legend.position = "none")
+
+# and then do some stats to see whether it changes between the statuses
+m7 <- lmer(MCP95_km2 ~ BibStatus + (1 | ID),
+                data = mcp_area)
+summary(m7)
 
 ```

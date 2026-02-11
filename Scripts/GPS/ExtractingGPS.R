@@ -1,4 +1,6 @@
 # This is the data provided by Galea --------------------------------------
+# Assessing which of the datasets are usable
+# Explore each of them and then keep the ones I wanted
 
 # Load in the two csv files -----------------------------------------------
 files <- c("Data/GPSData/GPS_BibOff.csv", "Data/GPSData/GPS_BibOn.csv")
@@ -18,6 +20,8 @@ ggplot(Galea_sorted, aes(x = Longitude, Latitude, colour = as.factor(BibStatus))
   facet_wrap(~ID, nrow = 2, scales = "free") +
   my_theme() + theme(axis.text = element_blank(), axis.ticks = element_blank())
 
+# verdict: very usable, but not a lot of data (1 day per condition per individual)
+
 # Extracting information from the GPX files -------------------------------
 # converted these to plain text at: https://www.gpsvisualizer.com/
 
@@ -35,9 +39,15 @@ textGPS <- lapply(textfiles, function(x){
 })
 textGPS <- rbindlist(textGPS) %>% select(-time)
 
+# select the ones not already included in the sorted data
+textGPS <- textGPS %>% 
+  dplyr::filter(!ID %in% unique(Galea_sorted$ID))
+
 ggplot(textGPS, aes(x = Longitude, Latitude, colour = as.factor(BibStatus))) + geom_path() +
   facet_wrap(~ID, nrow = 2, scales = "free") +
   my_theme() + theme(axis.text = element_blank(), axis.ticks = element_blank())
+
+# verdict: not a lot of data, and most of it doesnt have both conditions for every cat... 
 
 # Converting from the original csvs I was given (no IDs) ------------------
 # load in the files
@@ -133,7 +143,6 @@ IDs <- list(
   )
 )
 
-
 id_lookup <- map_dfr(
   names(IDs),
   ~ tibble(
@@ -178,99 +187,41 @@ ggplot(all_GPS, aes(x = Longitude, y = Latitude, colour = as.factor(Date))) + ge
 # the unnamed data had more days but the named data has the associated metadata 
 # therefore, I was able to retain most data this way
 unique_GPS <- all_GPS %>%
-  # dont remove the other data source because they aren't exactly overlapped
-  # dplyr::filter(!ID %in% c("Annie", "Calico", "Tassie", "Puddy", "Coco", "Timmy", "Webster", "Freddie")) %>%
-  mutate(ID = recode(ID,
-                      "A" = "Annie",
-                      "C" = "Calico",
-                      "I" = "Tassie",
-                      "E1" = "Coco",
-                      "E2" = "Timmy",
-                      "G" = "Webster",
-                      "B" = "Freddie"
-                     ))
+  # while they aren't exactly overlapped, going to remove the ones that are clearly replicates
+  dplyr::filter(!ID %in% c("A", "C", "I", "E1", "E2", "G", "B")) 
 
-# remove duplicate time values if there
-unique_GPS <- unique_GPS %>%
-  arrange(is.na(BibStatus)) %>%
-  distinct(across(-c(BibStatus)), .keep_all = TRUE)
+  # alternatively - to keep them, would recode them...
+  # mutate(ID = recode(ID,
+  #                     "A" = "Annie",
+  #                     "C" = "Calico",
+  #                     "I" = "Tassie",
+  #                     "E1" = "Coco",
+  #                     "E2" = "Timmy",
+  #                     "G" = "Webster",
+  #                     "B" = "Freddie"
+  #                    ))
+
+# # remove duplicate time values if there
+# unique_GPS <- unique_GPS %>%
+#   arrange(is.na(BibStatus)) %>%
+#   distinct(across(-c(BibStatus)), .keep_all = TRUE)
 
 # visualise everything
-ggplot(unique_GPS, aes(x = Longitude, y = Latitude, colour = as.factor(Date))) + geom_path() +
+ggplot(unique_GPS, aes(x = Longitude, y = Latitude, colour = as.factor(BibStatus))) + geom_path() +
   facet_wrap(~ID, scales = "free") +
   my_theme() + theme(axis.text = element_blank(), axis.ticks = element_blank())
 
-
-
-
-
-
-# Determine BibStatus where not already defined ---------------------------
-# transfer this information from the other data
-# firstly extract the times from the data Galea had pre-annotated
-dates <- Galea_sorted %>%
-  arrange(ID, BibStatus, DateTime) %>%
-  group_by(ID, BibStatus) %>%
-  summarise(Start = first(DateTime), Last = last(DateTime))
-
-# add that into the main csv
-setDT(dates)
-setDT(unique_GPS)
-unique_GPS[dates, BibStatus := i.BibStatus,
-  on = .(ID, DateTime >= Start, DateTime <= Last)
-]
-
-# and add in the statuses I know from the filenames of the txt files
-dates2 <- textGPS %>%
-  arrange(ID, BibStatus, DateTime) %>%
-  group_by(ID, BibStatus) %>%
-  summarise(Start = first(DateTime), Last = last(DateTime)) %>%
-  mutate(BibStatus = recode(BibStatus,
-                            "no" = "BibOff",
-                            "plus" = "BibOn"))
-setDT(dates2)
-setDT(unique_GPS)
-unique_GPS[dates2, BibStatus := i.BibStatus,
-           on = .(ID, DateTime >= Start, DateTime <= Last)
-]
-
-
-
-dat <- unique_GPS# [unique_GPS$ID == "Calico", ]
-
-
-ggplot(dat, aes(x = Longitude, y = Latitude, colour = BibStatus)) + 
-  geom_path() + 
-  facet_wrap(~as.factor(ID), scales = "free") + 
-  my_theme() + theme(axis.text = element_blank(), axis.ticks = element_blank())
-
-
-
-# and visualise again
-ggplot(dat, aes(Longitude, Latitude)) +
-  # NA bib status (background)
-  geom_path(
-    data = dat %>% dplyr::filter(is.na(BibStatus)),
-    alpha = 0.3,
-    colour = "grey60"
-  ) +
-  # non-NA bib status (foreground)
-  geom_path(
-    data = dat %>% dplyr::filter(!is.na(BibStatus)),
-    aes(colour = as.factor(BibStatus))
-  ) +
-  facet_wrap(~ ID, scales = "free") +
-  my_theme() +
-  theme(axis.text = element_blank(),
-        axis.ticks = element_blank())
-
+# verdict: can't really use this
 
 
 
 # Write to file -----------------------------------------------------------
-fwrite(unique_GPS, file.path("Data", "GPSData", "CollatedGPSData.csv"))
-
-
-
-
-
+all_GPS <- rbind(Galea_sorted, textGPS, fill = TRUE)
+all_GPS <- all_GPS %>%
+  mutate(BibStatus = ifelse(BibStatus == "plus", "BibOn", 
+                            ifelse(BibStatus == "no", "BibOff", BibStatus)),
+         Date = as.Date(DateTime))
+ggplot(all_GPS, aes(x = Longitude, y = Latitude, colour = as.factor(BibStatus))) + geom_path() +
+  facet_wrap(~ID, scales = "free") +
+  my_theme() + theme(axis.text = element_blank(), axis.ticks = element_blank())
+fwrite(all_GPS, file.path("Output", "Results", "CollatedGPSData.csv"))

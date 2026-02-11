@@ -14,18 +14,24 @@ setwd("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper")
 
 
 # Set up ------------------------------------------------------------------
-pacman::p_load(tidyverse,
+pacman::p_load(adehabitatHR,
+               caret,
+               cowplot,
                data.table,
-               tsfeatures,
+               e1071,
                future,
                future.apply,
-               ranger,
-               e1071,
-               caret,
-               rBayesianOptimization,
+               geosphere,
+               ggmap,
                mgcv,
                patchwork,
-               purrr)
+               ranger,
+               rBayesianOptimization,
+               sf,
+               splines,
+               tidyverse,
+               tsfeatures
+               )
 
 source("Scripts/FigureFunctions.R")
 source("Scripts/FeaturesFunctions.R")
@@ -75,7 +81,6 @@ source("Scripts/GeneratingPredictions/GeneratingFeaturesUnlabelled.R")
 # Quantifying effect of bib -----------------------------------------------
 source("Scripts/UnderstandingEcology/CreateFinalBibData.R")
 source("Scripts/UnderstandingEcology/BibAnalysis.R")
-
 
 # GPS Data ----------------------------------------------------------------
 source("Scripts/GPS/ExtractingGPS.R")
