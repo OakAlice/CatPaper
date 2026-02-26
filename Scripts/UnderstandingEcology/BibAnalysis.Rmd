@@ -8,10 +8,8 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE,
                       message = FALSE,
-                      warning = FALSE)
-
-#setwd("C:/Users/PC/OneDrive - University of the Sunshine Coast/CatPaper")
-setwd("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper")
+                      warning = FALSE,
+                      root.dir = "C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper")
 
 pacman::p_load(tidyverse,
                data.table,
@@ -72,8 +70,9 @@ duration_biboff <- nrow(final_data[final_data$bib_status == "Off"])/60/60/24
 print(cat("Individuals:", IDs, "\n",
           "Total sampling hours:", nrow(final_data)/60/60, "\n",
           "Total sampling days:", duration_total, "\n", 
-          "Total bib on days:", duration_bibon,  "(", round(duration_bibon/duration_total,2), ")",  "\n",
-          "Total bib off days:", duration_biboff, "(", round(duration_biboff/duration_total,2), ")"))
+          "Total bib on days:", duration_bibon,  "(", round(duration_bibon/duration_total,3), ")",  "\n",
+          "Total bib off days:", duration_biboff, "(", round(duration_biboff/duration_total,3), ")")
+      )
 ```
 
 And now just looking at the training data specifically.
@@ -198,7 +197,16 @@ f2 <- (p2.1 + p2.2) +
 f2
 
 # stats
-# haven't figured out the stats here yet
+tab <- table(final_data$bib_status, final_data$prediction)
+chisq.test(tab)
+
+prop_id <- final_data %>%
+  group_by(ID, bib_status, prediction) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(ID, bib_status) %>%
+  mutate(prop = n / sum(n))
+m <- lmer(prop ~ bib_status * prediction + (1|ID), data = prop_id)
+summary(m)
 
 ```
 
@@ -278,7 +286,6 @@ m3.2_interaction <- lmer(mean ~ bib_status * Sex +
                          data = d3.1)
 summary(m3.2_interaction)
 
-
 ```
 
 ## Assessing learning curve 
@@ -345,8 +352,39 @@ t.test(slopes$slope, mu = 0)
 
 ```
 
-### GPS Data
+### Sequence duration
+Looking at the duration of each behaviour time.
+```{r}
+# find the lenght of each prediction
+seq_data <- identify_sequences(final_data, max_break = 5)
+seq_data <- identify_events(seq_data, class_col = "prediction")
 
+setDT(seq_data)
+summaries <- seq_data[
+  ,
+  .(
+    Class    = first(prediction),
+    Bib      = first(bib_status),
+    duration = max(time) - min(time)
+  ),
+  by = .(ID, sequence, event)
+]
+
+# are the durations diffrent between the bib statuses
+ggplot(summaries, aes(x = Class, y = duration, fill = Bib)) +
+  geom_boxplot() +
+  my_theme()
+
+summaries$length <- as.numeric(summaries$duration)
+
+# assess with the stats
+m <- lmer(length ~ Bib * Class + (1|ID), data = summaries)
+anova(m)
+summary(m)
+
+```
+
+### GPS Data
 First we calculate how much data there was.
 ```{r}
 gps_smooth <- fread(file.path("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper/Output", "Results", "SmoothedGPSData.csv"))

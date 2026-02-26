@@ -22,6 +22,7 @@ pacman::p_load(adehabitatHR,
                future,
                future.apply,
                geosphere,
+               glmmTMB,
                ggmap,
                mgcv,
                patchwork,
@@ -36,6 +37,7 @@ pacman::p_load(adehabitatHR,
 source("Scripts/FigureFunctions.R")
 source("Scripts/FeaturesFunctions.R")
 source("Scripts/BuildingModel/BinarySVMFunctions.R")
+source("Scripts/SequencingFunctions.R")
 
 window_length <- 1 # in seconds
 target_activities <- c("Locomotion") # specific things to find
@@ -80,7 +82,7 @@ source("Scripts/GeneratingPredictions/GeneratingFeaturesUnlabelled.R")
 
 # Quantifying effect of bib -----------------------------------------------
 source("Scripts/UnderstandingEcology/CreateFinalBibData.R")
-source("Scripts/UnderstandingEcology/BibAnalysis.R")
+source("Scripts/UnderstandingEcology/BibAnalysis.Rmd")
 
 # GPS Data ----------------------------------------------------------------
 source("Scripts/GPS/ExtractingGPS.R")
