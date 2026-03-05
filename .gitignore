@@ -2,7 +2,7 @@
 Data/
 ModelBuilding/
 GaleaMaterials/
-**/figure-html/ # dont upload the raw figures
+**/figure-html/
 
 # But do upload the figures I used
 Manuscript/**
