@@ -2,7 +2,12 @@
 Data/
 ModelBuilding/
 GaleaMaterials/
-Manuscript/
+**/figure-html/ # dont upload the raw figures
+
+# But do upload the figures I used
+Manuscript/**
+!Manuscript/Figures/
+!Manuscript/Figures/**
 
 # Ignore R history files
 *.Rhistory

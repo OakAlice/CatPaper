@@ -13,12 +13,12 @@ knitr::opts_chunk$set(echo = FALSE,
 
 pacman::p_load(tidyverse,
                data.table,
-               patchwork,
                cowplot,
                ggmap,
                lme4,
                lmerTest,
-               glmmTMB)
+               glmmTMB,
+               patchwork)
 
 # plotting variables
 bib_colours <- c("On" = "#e89fbf",
@@ -157,35 +157,29 @@ p1.2 <- ggplot(d1.2, aes(x = prediction, y = mean, fill = bib_status)) +
   ylab("Mean VDBA (g)") +
   my_theme() + 
   scale_fill_manual(values = bib_colours)
-  
-# f1 <- (p1.1 + p1.2) +
-#     plot_layout(guides = "collect") &
-#     theme(
-#       legend.position = "bottom",
-#       legend.box = "horizontal",
-#       legend.title = element_text(size = 10),
-#       legend.text  = element_text(size = 10),
-#       legend.key.size = unit(0.4, "lines"),
-#       legend.spacing.x = unit(0.3, "cm"),
-#       legend.spacing.y = unit(0.2, "cm")
-#     )
-# f1
 
-p1.1
-
-p1.2
+f1 <- (p1.1 + p1.2 + plot_layout(guides = "collect")) &
+    theme(
+      legend.position = "bottom",
+      legend.box = "horizontal",
+      legend.title = element_text(size = 15),
+      legend.text  = element_text(size = 15),
+      legend.key.size = unit(0.4, "lines"),
+      legend.spacing.x = unit(0.3, "cm"),
+      legend.spacing.y = unit(0.2, "cm")
+    )
+f1
 
 # do the stats
 s1 <- final_data %>%
   group_by(ID, date, hour, bib_status, prediction) %>%
   summarise(mean = mean(mean_VDBA))
 
-m1 <- lmer(
+m1 <- glmmTMB(
   log(mean) ~ bib_status * prediction + 
     (1 | ID),
   data = s1
 )
-anova(m1)
 summary(m1)
 
 ```
