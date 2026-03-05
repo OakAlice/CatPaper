@@ -17,7 +17,8 @@ pacman::p_load(tidyverse,
                cowplot,
                ggmap,
                lme4,
-               lmerTest)
+               lmerTest,
+               glmmTMB)
 
 # plotting variables
 bib_colours <- c("On" = "#e89fbf",
@@ -44,6 +45,42 @@ my_theme <- function() {
       axis.text = element_text(size = 20) 
     )
 }
+
+source("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper/Scripts/GPS/Api_Key.R")
+
+# function
+identify_sequences <- function(data, max_break = 2){
+  
+  data <- data %>%
+    group_by(ID) %>%
+    arrange(time, .by_group = TRUE) %>%
+    mutate(time_diff = difftime(time, data.table::shift(time)), # had to define package or errored
+           break_point = ifelse(time_diff > max_break | time_diff < 0 , 1, 0),
+           break_point = replace_na(break_point, 0),
+           sequence = cumsum(break_point)) %>%
+    select(-break_point, -time_diff) %>%
+    ungroup()
+  
+  return(data)
+}
+identify_events <- function(data, class_col = "true_class"){
+  
+  setDT(data)
+  
+  data[
+    order(ID, sequence, time),
+    event := {
+      lag_class <- shift(get(class_col))
+      cp <- fifelse(lag_class == get(class_col), 0L, 1L)
+      cp[is.na(cp)] <- 0L
+      cumsum(cp)
+    },
+    by = .(ID, sequence)
+  ]
+  
+  return(data)
+}
+
 
 # setting up data
 # load in the data and clean it up
@@ -121,23 +158,28 @@ p1.2 <- ggplot(d1.2, aes(x = prediction, y = mean, fill = bib_status)) +
   my_theme() + 
   scale_fill_manual(values = bib_colours)
   
-f1 <- (p1.1 + p1.2) +
-    plot_layout(guides = "collect") &
-    theme(
-      legend.position = "bottom",
-      legend.box = "horizontal",
-      legend.title = element_text(size = 10),
-      legend.text  = element_text(size = 10),
-      legend.key.size = unit(0.4, "lines"),
-      legend.spacing.x = unit(0.3, "cm"),
-      legend.spacing.y = unit(0.2, "cm")
-    )
-f1
+# f1 <- (p1.1 + p1.2) +
+#     plot_layout(guides = "collect") &
+#     theme(
+#       legend.position = "bottom",
+#       legend.box = "horizontal",
+#       legend.title = element_text(size = 10),
+#       legend.text  = element_text(size = 10),
+#       legend.key.size = unit(0.4, "lines"),
+#       legend.spacing.x = unit(0.3, "cm"),
+#       legend.spacing.y = unit(0.2, "cm")
+#     )
+# f1
+
+p1.1
+
+p1.2
 
 # do the stats
 s1 <- final_data %>%
   group_by(ID, date, hour, bib_status, prediction) %>%
   summarise(mean = mean(mean_VDBA))
+
 m1 <- lmer(
   log(mean) ~ bib_status * prediction + 
     (1 | ID),
@@ -183,29 +225,35 @@ p2.2 <- ggplot(d2.2, aes(x = bib_status, y = total_count, fill = prediction)) +
   labs(y = NULL, x = "Bib Status") +
   my_theme()
 
-f2 <- (p2.1 + p2.2) +
-    plot_layout(guides = "collect") &
-    theme(
-      legend.position = "bottom",
-      legend.box = "horizontal",
-      legend.title = element_text(size = 10),
-      legend.text  = element_text(size = 10),
-      legend.key.size = unit(0.4, "lines"),
-      legend.spacing.x = unit(0.3, "cm"),
-      legend.spacing.y = unit(0.2, "cm")
-    )
-f2
+# f2 <- (p2.1 + p2.2) +
+#     plot_layout(guides = "collect") &
+#     theme(
+#       legend.position = "bottom",
+#       legend.box = "horizontal",
+#       legend.title = element_text(size = 10),
+#       legend.text  = element_text(size = 10),
+#       legend.key.size = unit(0.4, "lines"),
+#       legend.spacing.x = unit(0.3, "cm"),
+#       legend.spacing.y = unit(0.2, "cm")
+#     )
+# f2
+
+p2.1
+
+p2.2
 
 # stats
 tab <- table(final_data$bib_status, final_data$prediction)
 chisq.test(tab)
 
-prop_id <- final_data %>%
-  group_by(ID, bib_status, prediction) %>%
-  summarise(n = n(), .groups = "drop") %>%
-  group_by(ID, bib_status) %>%
-  mutate(prop = n / sum(n))
-m <- lmer(prop ~ bib_status * prediction + (1|ID), data = prop_id)
+cdat <- final_data %>% 
+  group_by(bib_status, prediction, ID) %>% 
+  count()
+
+m <- lmer(n ~ bib_status * prediction + (1|ID), data = cdat, family = poisson())
+
+m <- glmmTMB(n ~ bib_status * prediction + (1|ID), data = cdat, family = poisson())
+
 summary(m)
 
 ```
@@ -255,18 +303,24 @@ p3.3 <- ggplot(d3.2, aes(x = BodyLength, y = slope, colour = ID)) +
   my_theme() +
   scale_colour_manual(values = individual_colours) + theme(legend.position = "none")
 
-f3 <- (p3.1 + p3.2 + p3.3) +
-    plot_layout(guides = "collect") &
-    theme(
-      legend.position = "bottom",
-      legend.box = "horizontal",
-      legend.title = element_text(size = 10),
-      legend.text  = element_text(size = 10),
-      legend.key.size = unit(0.4, "lines"),
-      legend.spacing.x = unit(0.3, "cm"),
-      legend.spacing.y = unit(0.2, "cm")
-    )
-f3
+# f3 <- (p3.1 + p3.2 + p3.3) +
+#     plot_layout(guides = "collect") &
+#     theme(
+#       legend.position = "bottom",
+#       legend.box = "horizontal",
+#       legend.title = element_text(size = 10),
+#       legend.text  = element_text(size = 10),
+#       legend.key.size = unit(0.4, "lines"),
+#       legend.spacing.x = unit(0.3, "cm"),
+#       legend.spacing.y = unit(0.2, "cm")
+#     )
+# f3
+
+p3.1
+
+p3.2
+
+p3.3
 
 # stats
 m3 <- lmer(log(mean) ~ bib_status + (1 | ID), data = d3.1)

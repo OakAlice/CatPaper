@@ -2,6 +2,7 @@
 Data/
 ModelBuilding/
 GaleaMaterials/
+Manuscript/
 
 # Ignore R history files
 *.Rhistory
@@ -13,7 +14,6 @@ Scripts/GPS/Api_Key.R
 *.txt
 *.rda
 *.pdf
-*.png
 *.docx
 *.csv
 *.xlsx

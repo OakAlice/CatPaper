@@ -25,19 +25,20 @@ pacman::p_load(adehabitatHR,
                glmmTMB,
                ggmap,
                mgcv,
-               patchwork,
                ranger,
                rBayesianOptimization,
                sf,
                splines,
                tidyverse,
-               tsfeatures
+               tsfeatures,
+               patchwork
                )
 
 source("Scripts/FigureFunctions.R")
 source("Scripts/FeaturesFunctions.R")
 source("Scripts/BuildingModel/BinarySVMFunctions.R")
 source("Scripts/SequencingFunctions.R")
+source("Scripts/GPS/Api_Key.R")
 
 window_length <- 1 # in seconds
 target_activities <- c("Locomotion") # specific things to find
