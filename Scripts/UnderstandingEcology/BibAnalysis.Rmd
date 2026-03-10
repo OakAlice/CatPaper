@@ -205,6 +205,7 @@ p2.1 <- ggplot(d2.1, aes(x = hour, y = prop, fill = prediction)) +
   geom_area(position = "stack", alpha = 0.8) +
   facet_wrap(~ bib_status, ncol = 1, strip.position = "bottom") +  # move facet titles
   scale_fill_manual(values = prediction_colours) +
+  theme(legend.position = "none") +
   labs(x = "Hour", y = "Proportion of behaviours") +
   my_theme()
 
@@ -219,22 +220,17 @@ p2.2 <- ggplot(d2.2, aes(x = bib_status, y = total_count, fill = prediction)) +
   labs(y = NULL, x = "Bib Status") +
   my_theme()
 
-# f2 <- (p2.1 + p2.2) +
-#     plot_layout(guides = "collect") &
-#     theme(
-#       legend.position = "bottom",
-#       legend.box = "horizontal",
-#       legend.title = element_text(size = 10),
-#       legend.text  = element_text(size = 10),
-#       legend.key.size = unit(0.4, "lines"),
-#       legend.spacing.x = unit(0.3, "cm"),
-#       legend.spacing.y = unit(0.2, "cm")
-#     )
-# f2
-
-p2.1
-
-p2.2
+f2 <- (p2.1 + p2.2 + plot_layout(guides = "collect")) &
+    theme(
+      legend.position = "bottom",
+      legend.box = "horizontal",
+      legend.title = element_text(size = 15),
+      legend.text  = element_text(size = 15),
+      legend.key.size = unit(0.4, "lines"),
+      legend.spacing.x = unit(0.3, "cm"),
+      legend.spacing.y = unit(0.2, "cm")
+    )
+f2
 
 # stats
 tab <- table(final_data$bib_status, final_data$prediction)
@@ -243,8 +239,6 @@ chisq.test(tab)
 cdat <- final_data %>% 
   group_by(bib_status, prediction, ID) %>% 
   count()
-
-m <- lmer(n ~ bib_status * prediction + (1|ID), data = cdat, family = poisson())
 
 m <- glmmTMB(n ~ bib_status * prediction + (1|ID), data = cdat, family = poisson())
 
@@ -284,37 +278,30 @@ frontleg_df <- d3.1 %>%
 d3.2 <- left_join(d3.2, frontleg_df, by = "ID")
 
 p3.2 <- ggplot(d3.2, aes(x = FrontLegLength, y = slope, colour = ID)) +
-  geom_point(size = 3) +
+  geom_point(size = 5) +
   geom_smooth(method = "lm", se = FALSE, color = "black", linewidth = 2) +
   labs(x = "Front Leg Length (cm)", y = "Change in mean prediction (On − Off)") +
   my_theme() +
   scale_colour_manual(values = individual_colours) + theme(legend.position = "none")
 
 p3.3 <- ggplot(d3.2, aes(x = BodyLength, y = slope, colour = ID)) +
-  geom_point(size = 3) +
+  geom_point(size = 5) +
   geom_smooth(method = "lm", se = FALSE, color = "black", linewidth = 2) +
   labs(x = "Body Length (cm)", y = "Change in mean prediction (On − Off)") +
   my_theme() +
   scale_colour_manual(values = individual_colours) + theme(legend.position = "none")
 
-# f3 <- (p3.1 + p3.2 + p3.3) +
-#     plot_layout(guides = "collect") &
-#     theme(
-#       legend.position = "bottom",
-#       legend.box = "horizontal",
-#       legend.title = element_text(size = 10),
-#       legend.text  = element_text(size = 10),
-#       legend.key.size = unit(0.4, "lines"),
-#       legend.spacing.x = unit(0.3, "cm"),
-#       legend.spacing.y = unit(0.2, "cm")
-#     )
-# f3
-
-p3.1
-
-p3.2
-
-p3.3
+f3 <- (p3.1 + p3.2 + p3.3 + plot_layout(guides = "collect")) &
+    theme(
+      legend.position = "bottom",
+      legend.box = "horizontal",
+      legend.title = element_text(size = 15),
+      legend.text  = element_text(size = 15),
+      legend.key.size = unit(0.4, "lines"),
+      legend.spacing.x = unit(0.3, "cm"),
+      legend.spacing.y = unit(0.2, "cm")
+    )
+f3
 
 # stats
 m3 <- lmer(log(mean) ~ bib_status + (1 | ID), data = d3.1)
