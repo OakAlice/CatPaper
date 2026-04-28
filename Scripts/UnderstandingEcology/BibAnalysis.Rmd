@@ -46,7 +46,7 @@ my_theme <- function() {
     )
 }
 
-source("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper/Scripts/GPS/Api_Key.R")
+# source("C:/Users/oaw001/OneDrive - University of the Sunshine Coast/CatPaper/Scripts/GPS/Api_Key.R")
 
 # function
 identify_sequences <- function(data, max_break = 2){
@@ -181,6 +181,10 @@ m1 <- glmmTMB(
   data = s1
 )
 summary(m1)
+
+# now getting the overall effect of prediction
+library(car)
+Anova(m1, type = "III")
 
 ```
 
